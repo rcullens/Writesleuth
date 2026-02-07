@@ -225,6 +225,42 @@ backend:
         - agent: "testing"
         - comment: "Grok Vision integration working perfectly. POST /compare endpoint with use_ai_analysis=true successfully calls grok-2-vision-1212 model via XAI API (https://api.x.ai/v1/chat/completions). Returns all required fields: composite_score, sub_scores including 'AI Deep Analysis' with 'Grok Vision forensic analysis' description, ai_analysis text from Grok containing detailed forensic analysis, and verdict. Tested with two different handwriting samples containing actual visual features. API calls return HTTP 200 OK. AI analysis includes forensic terms and detailed similarity scoring (65-95% range observed). Integration fully functional."
 
+  - task: "Crop Region Endpoint"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+        - agent: "testing"
+        - comment: "POST /crop-region endpoint working correctly. Successfully processes base64 images and crops specified regions (crop_x, crop_y, crop_width, crop_height). Returns all required fields: cropped_image (with transparency), cropped_solid (fallback), width, height, original_x, original_y. Tested with handwriting image containing visual features. Cropping dimensions and position validation working properly. Response includes both transparent PNG and solid background versions."
+
+  - task: "Local Comparison Endpoint"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+        - agent: "testing"
+        - comment: "POST /local-comparison endpoint working correctly. Successfully compares overlay region with corresponding area in base image. Returns all required fields: local_ssim (53.6% in test), difference_heatmap, edge_overlap (0.0% in test), edge_visualization, region_width, region_height. Processes base64 images, resizes overlay to match requested dimensions, calculates SSIM and edge overlap metrics. Generates proper visualization outputs including difference heatmap and edge overlay visualization."
+
+  - task: "Generate Overlay PDF Endpoint"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+        - agent: "testing"
+        - comment: "POST /generate-overlay-pdf endpoint working correctly. Successfully generates PDF reports for overlay comparisons. Returns all required fields: pdf_base64 and filename (overlay_comparison_YYYYMMDD_HHMMSS.pdf format). Accepts all required parameters: base_image, overlay_image, overlay_x, overlay_y, overlay_width, overlay_height, overlay_alpha, local_ssim, edge_overlap. Generated PDF contains overlay settings, comparison metrics, and proper formatting. PDF size: 2313 bytes in test. Valid PDF content verified."
+
 frontend:
   # Frontend testing not performed by testing agent
 
