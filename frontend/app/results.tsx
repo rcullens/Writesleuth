@@ -429,6 +429,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 12,
   },
+  overlayModeButton: {
+    backgroundColor: '#1d4ed8',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+  },
   saveButton: {
     backgroundColor: '#059669',
     flexDirection: 'row',
