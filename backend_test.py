@@ -388,6 +388,9 @@ def run_all_tests():
     test_results['compare'] = test_compare_endpoint()
     test_results['compare_ai'] = test_compare_endpoint_with_ai()
     
+    # Test PDF generation endpoint
+    test_results['pdf_generation'] = test_pdf_generation_endpoint()
+    
     # Test history again to see if comparison was saved
     print("\nTesting history after comparison...")
     test_results['history_after'] = test_history_endpoint()
