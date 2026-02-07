@@ -713,6 +713,261 @@ async def clear_history():
         logger.error(f"Clear history error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============== CROP & OVERLAY ENDPOINTS ==============
+
+class CropRequest(BaseModel):
+    image_base64: str
+    crop_x: int
+    crop_y: int
+    crop_width: int
+    crop_height: int
+
+class LocalComparisonRequest(BaseModel):
+    base_image: str  # base64
+    overlay_image: str  # base64 cropped region
+    overlay_x: int
+    overlay_y: int
+    overlay_width: int
+    overlay_height: int
+
+@api_router.post("/crop-region")
+async def crop_region(request: CropRequest):
+    """Crop a region from an image and return it with transparent background"""
+    try:
+        # Decode image
+        img = base64_to_image(request.image_base64)
+        
+        # Validate crop bounds
+        h, w = img.shape[:2]
+        x = max(0, min(request.crop_x, w - 1))
+        y = max(0, min(request.crop_y, h - 1))
+        crop_w = max(10, min(request.crop_width, w - x))
+        crop_h = max(10, min(request.crop_height, h - y))
+        
+        # Crop the region
+        cropped = img[y:y+crop_h, x:x+crop_w]
+        
+        # Convert to RGBA (with alpha channel for transparency)
+        if len(cropped.shape) == 2:  # Grayscale
+            cropped_rgba = cv2.cvtColor(cropped, cv2.COLOR_GRAY2RGBA)
+        else:
+            cropped_rgba = cv2.cvtColor(cropped, cv2.COLOR_RGB2RGBA)
+        
+        # Create alpha mask based on content (make background transparent)
+        gray = cv2.cvtColor(cropped, cv2.COLOR_RGB2GRAY) if len(cropped.shape) == 3 else cropped
+        _, alpha_mask = cv2.threshold(gray, 240, 255, cv2.THRESH_BINARY_INV)
+        
+        # Apply alpha mask
+        cropped_rgba[:, :, 3] = alpha_mask
+        
+        # Also create a version with solid background for fallback
+        cropped_solid = image_to_base64(cropped, 'PNG')
+        
+        # Convert RGBA to base64
+        pil_img = Image.fromarray(cropped_rgba)
+        buffer = io.BytesIO()
+        pil_img.save(buffer, format='PNG')
+        cropped_transparent = base64.b64encode(buffer.getvalue()).decode()
+        
+        logger.info(f"Cropped region: {crop_w}x{crop_h} from position ({x}, {y})")
+        
+        return {
+            "cropped_image": cropped_transparent,
+            "cropped_solid": cropped_solid,
+            "width": crop_w,
+            "height": crop_h,
+            "original_x": x,
+            "original_y": y
+        }
+        
+    except Exception as e:
+        logger.error(f"Crop error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/local-comparison")
+async def local_comparison(request: LocalComparisonRequest):
+    """Compare overlay region with the corresponding area in base image"""
+    try:
+        # Decode images
+        base_img = base64_to_image(request.base_image)
+        overlay_img = base64_to_image(request.overlay_image)
+        
+        # Get dimensions
+        base_h, base_w = base_img.shape[:2]
+        overlay_h, overlay_w = overlay_img.shape[:2]
+        
+        # Calculate the region in base image that corresponds to overlay position
+        x = max(0, min(request.overlay_x, base_w - 1))
+        y = max(0, min(request.overlay_y, base_h - 1))
+        
+        # Resize overlay to match requested dimensions
+        target_w = min(request.overlay_width, base_w - x)
+        target_h = min(request.overlay_height, base_h - y)
+        
+        if target_w < 10 or target_h < 10:
+            return {"local_ssim": 0, "difference_heatmap": "", "edge_overlap": 0}
+        
+        # Resize overlay
+        overlay_resized = cv2.resize(overlay_img, (target_w, target_h))
+        
+        # Extract corresponding region from base
+        base_region = base_img[y:y+target_h, x:x+target_w]
+        
+        # Convert to grayscale for comparison
+        if len(overlay_resized.shape) == 3:
+            overlay_gray = cv2.cvtColor(overlay_resized, cv2.COLOR_RGB2GRAY)
+        else:
+            overlay_gray = overlay_resized
+            
+        if len(base_region.shape) == 3:
+            base_gray = cv2.cvtColor(base_region, cv2.COLOR_RGB2GRAY)
+        else:
+            base_gray = base_region
+        
+        # Calculate local SSIM
+        local_ssim_score = calculate_ssim_score(overlay_gray, base_gray)
+        
+        # Create difference heatmap
+        diff = cv2.absdiff(overlay_gray, base_gray)
+        diff_blurred = cv2.GaussianBlur(diff, (5, 5), 0)
+        diff_norm = cv2.normalize(diff_blurred, None, 0, 255, cv2.NORM_MINMAX)
+        heatmap = cv2.applyColorMap(diff_norm.astype(np.uint8), cv2.COLORMAP_JET)
+        heatmap_rgb = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+        
+        # Calculate edge overlap
+        overlay_edges = cv2.Canny(overlay_gray, 50, 150)
+        base_edges = cv2.Canny(base_gray, 50, 150)
+        edge_intersection = np.logical_and(overlay_edges > 0, base_edges > 0)
+        edge_union = np.logical_or(overlay_edges > 0, base_edges > 0)
+        edge_overlap = np.sum(edge_intersection) / (np.sum(edge_union) + 1e-8)
+        
+        # Create edge overlay visualization
+        edge_viz = np.zeros((target_h, target_w, 3), dtype=np.uint8)
+        edge_viz[overlay_edges > 0] = [255, 0, 0]  # Red for overlay edges
+        edge_viz[base_edges > 0] = [0, 255, 0]  # Green for base edges
+        edge_viz[edge_intersection] = [255, 255, 0]  # Yellow for matching
+        
+        logger.info(f"Local comparison: SSIM={local_ssim_score:.3f}, Edge overlap={edge_overlap:.3f}")
+        
+        return {
+            "local_ssim": round(local_ssim_score * 100, 1),
+            "difference_heatmap": image_to_base64(heatmap_rgb, 'PNG'),
+            "edge_overlap": round(edge_overlap * 100, 1),
+            "edge_visualization": image_to_base64(edge_viz, 'PNG'),
+            "region_width": target_w,
+            "region_height": target_h
+        }
+        
+    except Exception as e:
+        logger.error(f"Local comparison error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class OverlayReportRequest(BaseModel):
+    base_image: str
+    overlay_image: str
+    overlay_x: int
+    overlay_y: int
+    overlay_width: int
+    overlay_height: int
+    overlay_alpha: float
+    local_ssim: float
+    edge_overlap: float
+    notes: Optional[str] = None
+
+@api_router.post("/generate-overlay-pdf")
+async def generate_overlay_pdf(request: OverlayReportRequest):
+    """Generate PDF report for overlay comparison"""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import inch, mm
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=20*mm, bottomMargin=20*mm)
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=20, alignment=TA_CENTER, spaceAfter=15)
+        heading_style = ParagraphStyle('Heading', parent=styles['Heading2'], fontSize=12, spaceAfter=8, spaceBefore=12)
+        normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=10, spaceAfter=6)
+        
+        elements = []
+        
+        # Title
+        elements.append(Paragraph("Detail Overlay Comparison Report", title_style))
+        elements.append(Paragraph(f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}", normal_style))
+        elements.append(Spacer(1, 15))
+        
+        # Overlay Settings
+        elements.append(Paragraph("OVERLAY SETTINGS", heading_style))
+        settings_data = [
+            ["Position (X, Y)", f"({request.overlay_x}, {request.overlay_y})"],
+            ["Size (W × H)", f"{request.overlay_width} × {request.overlay_height} px"],
+            ["Transparency", f"{int(request.overlay_alpha * 100)}%"],
+        ]
+        settings_table = Table(settings_data, colWidths=[2*inch, 3*inch])
+        settings_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#1e293b')),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+            ('BACKGROUND', (1, 0), (1, -1), colors.HexColor('#f8fafc')),
+        ]))
+        elements.append(settings_table)
+        elements.append(Spacer(1, 15))
+        
+        # Local Comparison Scores
+        elements.append(Paragraph("LOCAL COMPARISON METRICS", heading_style))
+        
+        ssim_color = colors.HexColor('#22c55e') if request.local_ssim >= 85 else (
+            colors.HexColor('#f59e0b') if request.local_ssim >= 70 else colors.HexColor('#ef4444')
+        )
+        edge_color = colors.HexColor('#22c55e') if request.edge_overlap >= 50 else (
+            colors.HexColor('#f59e0b') if request.edge_overlap >= 30 else colors.HexColor('#ef4444')
+        )
+        
+        scores_data = [
+            ["Metric", "Score", "Interpretation"],
+            ["Local SSIM", f"{request.local_ssim:.1f}%", "Structural similarity in overlay region"],
+            ["Edge Overlap", f"{request.edge_overlap:.1f}%", "Stroke edge alignment match"],
+        ]
+        scores_table = Table(scores_data, colWidths=[1.5*inch, 1*inch, 3*inch])
+        scores_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e293b')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f1f5f9')]),
+        ]))
+        elements.append(scores_table)
+        elements.append(Spacer(1, 15))
+        
+        # Notes
+        if request.notes:
+            elements.append(Paragraph("EXAMINER NOTES", heading_style))
+            elements.append(Paragraph(request.notes, normal_style))
+        
+        # Build PDF
+        doc.build(elements)
+        
+        pdf_bytes = buffer.getvalue()
+        pdf_base64 = base64.b64encode(pdf_bytes).decode()
+        
+        return {
+            "pdf_base64": pdf_base64,
+            "filename": f"overlay_comparison_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.pdf"
+        }
+        
+    except Exception as e:
+        logger.error(f"Overlay PDF error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============== PDF REPORT GENERATION ==============
 
 class PDFReportRequest(BaseModel):
