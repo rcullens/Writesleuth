@@ -68,3 +68,67 @@ export const generatePDFReport = async (request: PDFReportRequest): Promise<{ pd
   const response = await api.post('/generate-pdf', request);
   return response.data;
 };
+
+// Crop & Overlay APIs
+export interface CropRequest {
+  image_base64: string;
+  crop_x: number;
+  crop_y: number;
+  crop_width: number;
+  crop_height: number;
+}
+
+export interface CropResponse {
+  cropped_image: string;
+  cropped_solid: string;
+  width: number;
+  height: number;
+  original_x: number;
+  original_y: number;
+}
+
+export const cropRegion = async (request: CropRequest): Promise<CropResponse> => {
+  const response = await api.post('/crop-region', request);
+  return response.data;
+};
+
+export interface LocalComparisonRequest {
+  base_image: string;
+  overlay_image: string;
+  overlay_x: number;
+  overlay_y: number;
+  overlay_width: number;
+  overlay_height: number;
+}
+
+export interface LocalComparisonResponse {
+  local_ssim: number;
+  difference_heatmap: string;
+  edge_overlap: number;
+  edge_visualization: string;
+  region_width: number;
+  region_height: number;
+}
+
+export const localComparison = async (request: LocalComparisonRequest): Promise<LocalComparisonResponse> => {
+  const response = await api.post('/local-comparison', request);
+  return response.data;
+};
+
+export interface OverlayReportRequest {
+  base_image: string;
+  overlay_image: string;
+  overlay_x: number;
+  overlay_y: number;
+  overlay_width: number;
+  overlay_height: number;
+  overlay_alpha: number;
+  local_ssim: number;
+  edge_overlap: number;
+  notes?: string;
+}
+
+export const generateOverlayPDF = async (request: OverlayReportRequest): Promise<{ pdf_base64: string; filename: string }> => {
+  const response = await api.post('/generate-overlay-pdf', request);
+  return response.data;
+};
