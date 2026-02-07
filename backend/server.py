@@ -388,15 +388,32 @@ Provide a similarity score from 0-100 and detailed analysis."""
         if ',' in img2_base64:
             img2_base64 = img2_base64.split(',')[1]
         
-        # Create image contents
-        image1 = ImageContent(image_base64=img1_base64)
-        image2 = ImageContent(image_base64=img2_base64)
+        # Create image contents - using a single combined image approach
+        # Since API may have limitations, we'll send them separately as file_contents
+        from emergentintegrations.llm.chat import FileContentWithMimeType
+        
+        # Save images temporarily for analysis
+        import tempfile
+        temp_dir = tempfile.gettempdir()
+        
+        # Write first image
+        img1_path = f"{temp_dir}/img1_{uuid.uuid4()}.png"
+        with open(img1_path, 'wb') as f:
+            f.write(base64.b64decode(img1_base64))
+        
+        # Write second image  
+        img2_path = f"{temp_dir}/img2_{uuid.uuid4()}.png"
+        with open(img2_path, 'wb') as f:
+            f.write(base64.b64decode(img2_base64))
+        
+        file1 = FileContentWithMimeType(file_path=img1_path, mime_type="image/png")
+        file2 = FileContentWithMimeType(file_path=img2_path, mime_type="image/png")
         
         message = UserMessage(
             text="""Compare these two handwriting samples for forensic analysis.
 
-Image 1: Questioned Document (sample to be verified)
-Image 2: Known Sample (reference sample)
+The first image is the Questioned Document (sample to be verified).
+The second image is the Known Sample (reference sample).
 
 Provide your analysis in this exact format:
 SIMILARITY_SCORE: [0-100]
@@ -404,7 +421,7 @@ CONFIDENCE: [LOW/MEDIUM/HIGH]
 KEY_SIMILARITIES: [list main similar features]
 KEY_DIFFERENCES: [list main different features]
 DETAILED_ANALYSIS: [comprehensive analysis paragraph]""",
-            image_contents=[image1, image2]
+            file_contents=[file1, file2]
         )
         
         response = await chat.send_message(message)
