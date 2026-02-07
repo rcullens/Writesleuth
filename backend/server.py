@@ -365,7 +365,7 @@ def compare_distributions(hist1: np.ndarray, hist2: np.ndarray) -> float:
 async def perform_ai_analysis(img1_base64: str, img2_base64: str) -> Dict[str, Any]:
     """Use GPT-4o Vision to analyze handwriting samples"""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
         
         api_key = os.environ.get('EMERGENT_LLM_KEY')
         if not api_key:
