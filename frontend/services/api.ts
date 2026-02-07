@@ -50,3 +50,21 @@ export const healthCheck = async (): Promise<boolean> => {
     return false;
   }
 };
+
+export interface PDFReportRequest {
+  comparison_id: string;
+  questioned_thumb: string;
+  known_thumb: string;
+  processed_questioned: string;
+  processed_known: string;
+  difference_heatmap: string;
+  composite_score: number;
+  sub_scores: Array<{ name: string; score: number; description: string }>;
+  verdict: string;
+  ai_analysis?: string;
+}
+
+export const generatePDFReport = async (request: PDFReportRequest): Promise<{ pdf_base64: string; filename: string }> => {
+  const response = await api.post('/generate-pdf', request);
+  return response.data;
+};
