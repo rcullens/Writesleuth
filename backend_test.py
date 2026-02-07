@@ -368,6 +368,258 @@ def test_pdf_generation_endpoint():
         print(f"❌ PDF generation endpoint error: {e}")
         return False
 
+def test_crop_region_endpoint():
+    """Test POST /crop-region endpoint"""
+    print("\nTesting POST /crop-region endpoint...")
+    try:
+        # Create a test image with visual features (handwriting)
+        img = create_test_handwriting_image("Sample handwriting for cropping test", 400, 200)
+        
+        # Convert to base64 (without data URL prefix)
+        def img_to_base64_clean(img):
+            buffer = io.BytesIO()
+            img.save(buffer, format='PNG')
+            return base64.b64encode(buffer.getvalue()).decode()
+        
+        image_base64 = img_to_base64_clean(img)
+        
+        # Prepare request data as specified in review request
+        request_data = {
+            "image_base64": image_base64,
+            "crop_x": 50,
+            "crop_y": 50,
+            "crop_width": 100,
+            "crop_height": 80
+        }
+        
+        print("Sending crop region request...")
+        response = requests.post(
+            f"{BACKEND_URL}/crop-region",
+            json=request_data,
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+        
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("Response keys:", list(data.keys()))
+            
+            # Check required fields as specified in review request
+            required_fields = ['cropped_image', 'cropped_solid', 'width', 'height', 'original_x', 'original_y']
+            missing_fields = [field for field in required_fields if field not in data]
+            if missing_fields:
+                print(f"❌ Crop region endpoint missing fields: {missing_fields}")
+                return False
+            
+            # Validate the response values
+            if data.get('width') != 100 or data.get('height') != 80:
+                print(f"❌ Crop region endpoint returned incorrect dimensions: {data.get('width')}x{data.get('height')}")
+                return False
+            
+            if data.get('original_x') != 50 or data.get('original_y') != 50:
+                print(f"❌ Crop region endpoint returned incorrect position: ({data.get('original_x')}, {data.get('original_y')})")
+                return False
+            
+            # Validate base64 images
+            cropped_image = data.get('cropped_image', '')
+            cropped_solid = data.get('cropped_solid', '')
+            
+            if not cropped_image or not cropped_solid:
+                print("❌ Crop region endpoint returned empty image data")
+                return False
+            
+            print(f"Cropped dimensions: {data['width']}x{data['height']}")
+            print(f"Original position: ({data['original_x']}, {data['original_y']})")
+            print("✅ Crop region endpoint working correctly")
+            return True
+        else:
+            print(f"❌ Crop region endpoint failed with status {response.status_code}")
+            try:
+                error_detail = response.json()
+                print(f"Error details: {error_detail}")
+            except:
+                print(f"Error text: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Crop region endpoint error: {e}")
+        return False
+
+def test_local_comparison_endpoint():
+    """Test POST /local-comparison endpoint"""
+    print("\nTesting POST /local-comparison endpoint...")
+    try:
+        # Create test images with visual features
+        base_img = create_test_handwriting_image("Base document with handwriting", 400, 200)
+        overlay_img = create_test_handwriting_image("Overlay sample text", 150, 100)
+        
+        # Convert to base64 (without data URL prefix)
+        def img_to_base64_clean(img):
+            buffer = io.BytesIO()
+            img.save(buffer, format='PNG')
+            return base64.b64encode(buffer.getvalue()).decode()
+        
+        base_image_b64 = img_to_base64_clean(base_img)
+        overlay_image_b64 = img_to_base64_clean(overlay_img)
+        
+        # Prepare request data as specified in review request
+        request_data = {
+            "base_image": base_image_b64,
+            "overlay_image": overlay_image_b64,
+            "overlay_x": 50,
+            "overlay_y": 50,
+            "overlay_width": 100,
+            "overlay_height": 80
+        }
+        
+        print("Sending local comparison request...")
+        response = requests.post(
+            f"{BACKEND_URL}/local-comparison",
+            json=request_data,
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+        
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("Response keys:", list(data.keys()))
+            
+            # Check required fields as specified in review request
+            required_fields = ['local_ssim', 'difference_heatmap', 'edge_overlap', 'edge_visualization']
+            missing_fields = [field for field in required_fields if field not in data]
+            if missing_fields:
+                print(f"❌ Local comparison endpoint missing fields: {missing_fields}")
+                return False
+            
+            # Validate the response values
+            local_ssim = data.get('local_ssim')
+            edge_overlap = data.get('edge_overlap')
+            difference_heatmap = data.get('difference_heatmap', '')
+            edge_visualization = data.get('edge_visualization', '')
+            
+            if local_ssim is None or not isinstance(local_ssim, (int, float)):
+                print(f"❌ Local comparison endpoint returned invalid local_ssim: {local_ssim}")
+                return False
+            
+            if edge_overlap is None or not isinstance(edge_overlap, (int, float)):
+                print(f"❌ Local comparison endpoint returned invalid edge_overlap: {edge_overlap}")
+                return False
+            
+            if not difference_heatmap or not edge_visualization:
+                print("❌ Local comparison endpoint returned empty visualization data")
+                return False
+            
+            print(f"Local SSIM: {local_ssim}%")
+            print(f"Edge Overlap: {edge_overlap}%")
+            print("✅ Local comparison endpoint working correctly")
+            return True
+        else:
+            print(f"❌ Local comparison endpoint failed with status {response.status_code}")
+            try:
+                error_detail = response.json()
+                print(f"Error details: {error_detail}")
+            except:
+                print(f"Error text: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Local comparison endpoint error: {e}")
+        return False
+
+def test_generate_overlay_pdf_endpoint():
+    """Test POST /generate-overlay-pdf endpoint"""
+    print("\nTesting POST /generate-overlay-pdf endpoint...")
+    try:
+        # Create test images with visual features
+        base_img = create_test_handwriting_image("Base document for PDF", 400, 200)
+        overlay_img = create_test_handwriting_image("Overlay for PDF", 150, 100)
+        
+        # Convert to base64 (without data URL prefix)
+        def img_to_base64_clean(img):
+            buffer = io.BytesIO()
+            img.save(buffer, format='PNG')
+            return base64.b64encode(buffer.getvalue()).decode()
+        
+        base_image_b64 = img_to_base64_clean(base_img)
+        overlay_image_b64 = img_to_base64_clean(overlay_img)
+        
+        # Prepare request data as specified in review request
+        request_data = {
+            "base_image": base_image_b64,
+            "overlay_image": overlay_image_b64,
+            "overlay_x": 50,
+            "overlay_y": 50,
+            "overlay_width": 100,
+            "overlay_height": 80,
+            "overlay_alpha": 0.7,
+            "local_ssim": 75.5,
+            "edge_overlap": 45.2
+        }
+        
+        print("Sending generate overlay PDF request...")
+        response = requests.post(
+            f"{BACKEND_URL}/generate-overlay-pdf",
+            json=request_data,
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+        
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("Response keys:", list(data.keys()))
+            
+            # Check required fields as specified in review request
+            required_fields = ['pdf_base64', 'filename']
+            missing_fields = [field for field in required_fields if field not in data]
+            if missing_fields:
+                print(f"❌ Generate overlay PDF endpoint missing fields: {missing_fields}")
+                return False
+            
+            # Validate the response format
+            pdf_base64 = data.get('pdf_base64', '')
+            filename = data.get('filename', '')
+            
+            if not pdf_base64:
+                print("❌ Generate overlay PDF endpoint returned empty pdf_base64")
+                return False
+            
+            if not filename.startswith('overlay_comparison_') or not filename.endswith('.pdf'):
+                print(f"❌ Generate overlay PDF endpoint returned invalid filename: {filename}")
+                return False
+            
+            # Check if the base64 is valid PDF content
+            try:
+                pdf_bytes = base64.b64decode(pdf_base64)
+                if not pdf_bytes.startswith(b'%PDF'):
+                    print("❌ Generate overlay PDF endpoint returned invalid PDF content")
+                    return False
+            except Exception as e:
+                print(f"❌ Generate overlay PDF endpoint returned invalid base64: {e}")
+                return False
+            
+            print(f"PDF filename: {filename}")
+            print(f"PDF size: {len(pdf_bytes)} bytes")
+            print("✅ Generate overlay PDF endpoint working correctly")
+            return True
+        else:
+            print(f"❌ Generate overlay PDF endpoint failed with status {response.status_code}")
+            try:
+                error_detail = response.json()
+                print(f"Error details: {error_detail}")
+            except:
+                print(f"Error text: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Generate overlay PDF endpoint error: {e}")
+        return False
+
 def run_all_tests():
     """Run all backend API tests"""
     print("=" * 60)
