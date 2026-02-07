@@ -363,24 +363,20 @@ def compare_distributions(hist1: np.ndarray, hist2: np.ndarray) -> float:
 # ============== AI ANALYSIS ==============
 
 async def perform_ai_analysis(img1_base64: str, img2_base64: str) -> Dict[str, Any]:
-    """Use GPT-4o Vision to analyze handwriting samples"""
+    """Use Grok Vision to analyze handwriting samples"""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        from openai import OpenAI
         
-        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        api_key = os.environ.get('XAI_API_KEY')
         if not api_key:
-            logger.warning("No EMERGENT_LLM_KEY found, skipping AI analysis")
-            return {'score': 0.5, 'analysis': 'AI analysis unavailable'}
+            logger.warning("No XAI_API_KEY found, skipping AI analysis")
+            return {'score': 0.5, 'analysis': 'AI analysis unavailable - No Grok API key'}
         
-        chat = LlmChat(
+        # Initialize xAI client (OpenAI compatible)
+        client = OpenAI(
             api_key=api_key,
-            session_id=f"handwriting-analysis-{uuid.uuid4()}",
-            system_message="""You are an expert forensic document examiner specializing in handwriting analysis. 
-Analyze the two handwriting samples provided and compare them for authorship determination.
-Focus on: letter formations, slant consistency, spacing patterns, pressure indicators, baseline alignment, 
-connecting strokes, unique characteristics, and overall writing style.
-Provide a similarity score from 0-100 and detailed analysis."""
-        ).with_model("openai", "gpt-4o")
+            base_url="https://api.x.ai/v1"
+        )
         
         # Clean base64 strings
         if ',' in img1_base64:
@@ -388,26 +384,22 @@ Provide a similarity score from 0-100 and detailed analysis."""
         if ',' in img2_base64:
             img2_base64 = img2_base64.split(',')[1]
         
-        # Create image contents - using file_contents approach
-        # Save images temporarily for analysis
-        import tempfile
-        temp_dir = tempfile.gettempdir()
-        
-        # Write first image
-        img1_path = f"{temp_dir}/img1_{uuid.uuid4()}.png"
-        with open(img1_path, 'wb') as f:
-            f.write(base64.b64decode(img1_base64))
-        
-        # Write second image  
-        img2_path = f"{temp_dir}/img2_{uuid.uuid4()}.png"
-        with open(img2_path, 'wb') as f:
-            f.write(base64.b64decode(img2_base64))
-        
-        file1 = FileContentWithMimeType(file_path=img1_path, mime_type="image/png")
-        file2 = FileContentWithMimeType(file_path=img2_path, mime_type="image/png")
-        
-        message = UserMessage(
-            text="""Compare these two handwriting samples for forensic analysis.
+        # Create message with images for Grok Vision
+        messages = [
+            {
+                "role": "system",
+                "content": """You are an expert forensic document examiner specializing in handwriting analysis. 
+Analyze the two handwriting samples provided and compare them for authorship determination.
+Focus on: letter formations, slant consistency, spacing patterns, pressure indicators, baseline alignment, 
+connecting strokes, unique characteristics, and overall writing style.
+Provide a similarity score from 0-100 and detailed analysis."""
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": """Compare these two handwriting samples for forensic analysis.
 
 The first image is the Questioned Document (sample to be verified).
 The second image is the Known Sample (reference sample).
@@ -417,25 +409,48 @@ SIMILARITY_SCORE: [0-100]
 CONFIDENCE: [LOW/MEDIUM/HIGH]
 KEY_SIMILARITIES: [list main similar features]
 KEY_DIFFERENCES: [list main different features]
-DETAILED_ANALYSIS: [comprehensive analysis paragraph]""",
-            file_contents=[file1, file2]
+DETAILED_ANALYSIS: [comprehensive analysis paragraph]"""
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{img1_base64}"
+                        }
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{img2_base64}"
+                        }
+                    }
+                ]
+            }
+        ]
+        
+        # Call Grok Vision API
+        response = client.chat.completions.create(
+            model="grok-2-vision-1212",
+            messages=messages,
+            max_tokens=2000
         )
         
-        response = await chat.send_message(message)
+        analysis_text = response.choices[0].message.content
         
         # Parse response
         score = 50
-        if 'SIMILARITY_SCORE:' in response:
+        if 'SIMILARITY_SCORE:' in analysis_text:
             try:
-                score_str = response.split('SIMILARITY_SCORE:')[1].split('\n')[0].strip()
+                score_str = analysis_text.split('SIMILARITY_SCORE:')[1].split('\n')[0].strip()
                 score = int(''.join(filter(str.isdigit, score_str[:3])))
                 score = max(0, min(100, score))
             except:
                 pass
         
+        logger.info(f"Grok analysis complete, score: {score}")
+        
         return {
             'score': score / 100,
-            'analysis': response
+            'analysis': analysis_text
         }
         
     except Exception as e:
