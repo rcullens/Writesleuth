@@ -47,6 +47,22 @@ export default function RootLayout() {
             presentation: 'modal',
           }}
         />
+        <Stack.Screen
+          name="crop"
+          options={{
+            title: 'Crop Selection',
+            presentation: 'fullScreenModal',
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="overlay"
+          options={{
+            title: 'Overlay Adjustment',
+            presentation: 'fullScreenModal',
+            headerShown: false,
+          }}
+        />
       </Stack>
     </>
   );
