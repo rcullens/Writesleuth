@@ -18,13 +18,15 @@ import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useAppStore, SubScore } from '../store/appStore';
+import { useOverlayStore } from '../store/overlayStore';
 import { generatePDFReport } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
 export default function ResultsScreen() {
   const router = useRouter();
-  const { currentResult, clearImages } = useAppStore();
+  const { currentResult, clearImages, questionedImage, knownImage } = useAppStore();
+  const { setSourceImage, setBaseImage, toggleCropMode, resetAll } = useOverlayStore();
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
   if (!currentResult) {
@@ -44,6 +46,18 @@ export default function ResultsScreen() {
   const handleNewComparison = () => {
     clearImages();
     router.back();
+  };
+
+  const handleCropOverlayMode = () => {
+    if (!questionedImage || !knownImage) {
+      Alert.alert('Missing Images', 'Both images are required for overlay comparison.');
+      return;
+    }
+    resetAll();
+    setSourceImage(questionedImage);
+    setBaseImage(knownImage);
+    toggleCropMode(true);
+    router.push('/crop');
   };
 
   const handleSaveReport = async () => {
