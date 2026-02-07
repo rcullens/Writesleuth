@@ -37,12 +37,17 @@ export default function HelpScreen() {
     {
       icon: 'sparkles',
       title: 'AI-Powered Analysis',
-      description: 'Optional GPT-4o Vision analysis provides expert-level forensic insights.',
+      description: 'GPT-4o Vision analysis provides expert-level forensic insights.',
     },
     {
       icon: 'time',
       title: 'Comparison History',
       description: 'All comparisons are saved for future reference and review.',
+    },
+    {
+      icon: 'document-text-outline',
+      title: 'PDF Reports',
+      description: 'Export detailed forensic reports as PDF documents for sharing and archival.',
     },
   ];
 
@@ -63,18 +68,6 @@ export default function HelpScreen() {
           <Ionicons name="finger-print" size={56} color="#3b82f6" />
           <Text style={styles.title}>Handwriting Forensic Comparator</Text>
           <Text style={styles.version}>Version 1.0.0</Text>
-        </View>
-
-        {/* Disclaimer */}
-        <View style={styles.disclaimerBox}>
-          <Ionicons name="warning" size={24} color="#f59e0b" />
-          <View style={styles.disclaimerContent}>
-            <Text style={styles.disclaimerTitle}>Important Disclaimer</Text>
-            <Text style={styles.disclaimerText}>
-              This is a research and educational tool — not certified forensic software. 
-              Results should not be used as legal evidence or for official forensic examination purposes.
-            </Text>
-          </View>
         </View>
 
         {/* Features */}
@@ -165,6 +158,12 @@ export default function HelpScreen() {
               </View>
               <Text style={styles.stepText}>Review results with scores, heatmaps, and verdict</Text>
             </View>
+            <View style={styles.stepItem}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>6</Text>
+              </View>
+              <Text style={styles.stepText}>Save and share your report as a PDF document</Text>
+            </View>
           </View>
         </View>
 
@@ -204,28 +203,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     marginTop: 4,
-  },
-  disclaimerBox: {
-    backgroundColor: '#422006',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    marginBottom: 24,
-  },
-  disclaimerContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  disclaimerTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fbbf24',
-    marginBottom: 4,
-  },
-  disclaimerText: {
-    fontSize: 12,
-    color: '#fcd34d',
-    lineHeight: 18,
   },
   section: {
     marginBottom: 24,
