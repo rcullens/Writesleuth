@@ -236,7 +236,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "All backend API endpoints tested and working including PDF generation"
+    - "All backend API endpoints tested and working including PDF generation and Grok Vision AI integration"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
