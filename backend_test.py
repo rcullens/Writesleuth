@@ -643,6 +643,11 @@ def run_all_tests():
     # Test PDF generation endpoint
     test_results['pdf_generation'] = test_pdf_generation_endpoint()
     
+    # Test NEW Crop & Overlay endpoints
+    test_results['crop_region'] = test_crop_region_endpoint()
+    test_results['local_comparison'] = test_local_comparison_endpoint()
+    test_results['generate_overlay_pdf'] = test_generate_overlay_pdf_endpoint()
+    
     # Test history again to see if comparison was saved
     print("\nTesting history after comparison...")
     test_results['history_after'] = test_history_endpoint()
