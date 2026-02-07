@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,17 +7,25 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
+  Alert,
+  ActivityIndicator,
+  Platform,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useAppStore, SubScore } from '../store/appStore';
+import { generatePDFReport } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
 export default function ResultsScreen() {
   const router = useRouter();
   const { currentResult, clearImages } = useAppStore();
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   if (!currentResult) {
     return (
@@ -36,6 +44,63 @@ export default function ResultsScreen() {
   const handleNewComparison = () => {
     clearImages();
     router.back();
+  };
+
+  const handleSaveReport = async () => {
+    if (!currentResult) return;
+
+    setGeneratingPDF(true);
+    try {
+      const pdfResponse = await generatePDFReport({
+        comparison_id: currentResult.id,
+        questioned_thumb: currentResult.questioned_image_thumb,
+        known_thumb: currentResult.known_image_thumb,
+        processed_questioned: currentResult.processed_questioned,
+        processed_known: currentResult.processed_known,
+        difference_heatmap: currentResult.difference_heatmap,
+        composite_score: currentResult.composite_score,
+        sub_scores: currentResult.sub_scores.map(s => ({
+          name: s.name,
+          score: s.score,
+          description: s.description,
+        })),
+        verdict: currentResult.verdict,
+        ai_analysis: currentResult.ai_analysis,
+      });
+
+      const filename = pdfResponse.filename;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+      
+      // Write PDF to file
+      await FileSystem.writeAsStringAsync(fileUri, pdfResponse.pdf_base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // Check if sharing is available
+      const canShare = await Sharing.isAvailableAsync();
+      
+      if (canShare) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Save Forensic Report',
+          UTI: 'com.adobe.pdf',
+        });
+      } else if (Platform.OS === 'web') {
+        // For web, create a download link
+        const link = document.createElement('a');
+        link.href = `data:application/pdf;base64,${pdfResponse.pdf_base64}`;
+        link.download = filename;
+        link.click();
+        Alert.alert('Success', 'PDF report downloaded successfully!');
+      } else {
+        Alert.alert('Success', `Report saved to: ${fileUri}`);
+      }
+    } catch (error: any) {
+      console.error('PDF generation error:', error);
+      Alert.alert('Error', 'Failed to generate PDF report. Please try again.');
+    } finally {
+      setGeneratingPDF(false);
+    }
   };
 
   const renderScoreCard = (subScore: SubScore, index: number) => {
@@ -155,18 +220,28 @@ export default function ResultsScreen() {
 
         {/* Actions */}
         <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSaveReport}
+            disabled={generatingPDF}
+          >
+            {generatingPDF ? (
+              <>
+                <ActivityIndicator size="small" color="#fff" />
+                <Text style={styles.actionButtonText}>Generating PDF...</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="document-text-outline" size={20} color="#fff" />
+                <Text style={styles.actionButtonText}>Save Report (PDF)</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.actionButton} onPress={handleNewComparison}>
             <Ionicons name="add-circle-outline" size={20} color="#fff" />
             <Text style={styles.actionButtonText}>New Comparison</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Disclaimer */}
-        <View style={styles.disclaimer}>
-          <Ionicons name="information-circle-outline" size={16} color="#64748b" />
-          <Text style={styles.disclaimerText}>
-            This is a research/educational tool — not certified forensic software.
-          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -329,6 +404,16 @@ const styles = StyleSheet.create({
   actionsContainer: {
     marginTop: 8,
     marginBottom: 16,
+    gap: 12,
+  },
+  saveButton: {
+    backgroundColor: '#059669',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
   },
   actionButton: {
     backgroundColor: '#3b82f6',
@@ -343,18 +428,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  disclaimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 16,
-  },
-  disclaimerText: {
-    fontSize: 11,
-    color: '#64748b',
-    textAlign: 'center',
-    flex: 1,
   },
 });
