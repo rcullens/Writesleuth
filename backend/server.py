@@ -570,7 +570,7 @@ async def perform_comparison(questioned_img: np.ndarray, known_img: np.ndarray, 
         sub_scores.append(SubScore(
             name="AI Deep Analysis", 
             score=round(ai_score * 100, 1),
-            description="GPT-4o Vision forensic analysis"
+            description="Grok Vision forensic analysis"
         ))
     
     return {
