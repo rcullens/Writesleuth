@@ -272,7 +272,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "All backend API endpoints tested and working including PDF generation and Grok Vision AI integration"
+    - "All backend API endpoints tested and working including PDF generation, Grok Vision AI integration, and new Crop & Overlay endpoints"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
@@ -282,3 +282,5 @@ agent_communication:
     - message: "Comprehensive backend API testing completed successfully including new PDF generation endpoint. All 8 test cases passed: basic endpoints (root, health, history, clear history), image comparison with AI analysis, database operations, and PDF report generation. The new /generate-pdf endpoint works correctly - accepts comparison data with base64 images and returns valid PDF reports in base64 format. The Handwriting Forensic Comparator backend is fully functional with all features working as expected."
     - agent: "testing"
     - message: "GROK VISION INTEGRATION TESTING COMPLETED: Successfully tested the /api/compare endpoint with Grok Vision AI analysis. Verified that the endpoint correctly processes base64 images, calls the grok-2-vision-1212 model via XAI API, and returns all required fields including composite_score, sub_scores with 'AI Deep Analysis' (Grok Vision forensic analysis), ai_analysis text from Grok, and verdict. The integration is working perfectly with proper forensic analysis responses. Test images used contained actual visual features as required. All API calls to https://api.x.ai/v1/chat/completions are successful (HTTP 200 OK)."
+    - agent: "testing"
+    - message: "NEW CROP & OVERLAY ENDPOINTS TESTING COMPLETED: Successfully tested all 3 new endpoints requested in review. POST /api/crop-region works correctly - crops image regions and returns both transparent and solid versions with proper dimensions. POST /api/local-comparison works correctly - compares overlay regions with base image areas, calculates SSIM (53.6% in test) and edge overlap (0.0% in test), generates difference heatmap and edge visualization. POST /api/generate-overlay-pdf works correctly - generates PDF reports for overlay comparisons with all required fields and proper filename format (overlay_comparison_YYYYMMDD_HHMMSS.pdf). All endpoints process base64 images correctly and follow image testing guidelines using handwriting samples with visual features. Total backend test results: 11/11 tests passed including the 3 new Crop & Overlay endpoints."
