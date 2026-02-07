@@ -698,6 +698,158 @@ async def clear_history():
         logger.error(f"Clear history error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============== PDF REPORT GENERATION ==============
+
+class PDFReportRequest(BaseModel):
+    comparison_id: str
+    questioned_thumb: str
+    known_thumb: str
+    processed_questioned: str
+    processed_known: str
+    difference_heatmap: str
+    composite_score: float
+    sub_scores: List[Dict[str, Any]]
+    verdict: str
+    ai_analysis: Optional[str] = None
+
+from fastapi.responses import Response
+
+@api_router.post("/generate-pdf")
+async def generate_pdf_report(request: PDFReportRequest):
+    """Generate PDF report for a comparison"""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import inch, mm
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=20*mm, bottomMargin=20*mm)
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=24, alignment=TA_CENTER, spaceAfter=20)
+        heading_style = ParagraphStyle('Heading', parent=styles['Heading2'], fontSize=14, spaceAfter=10, spaceBefore=15)
+        normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=10, spaceAfter=6)
+        score_style = ParagraphStyle('Score', parent=styles['Normal'], fontSize=36, alignment=TA_CENTER, textColor=colors.HexColor('#3b82f6'))
+        verdict_style = ParagraphStyle('Verdict', parent=styles['Normal'], fontSize=16, alignment=TA_CENTER, spaceAfter=20)
+        
+        elements = []
+        
+        # Title
+        elements.append(Paragraph("Handwriting Forensic Analysis Report", title_style))
+        elements.append(Spacer(1, 10))
+        
+        # Timestamp and ID
+        elements.append(Paragraph(f"Report ID: {request.comparison_id}", normal_style))
+        elements.append(Paragraph(f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}", normal_style))
+        elements.append(Paragraph("App Version: 1.0.0", normal_style))
+        elements.append(Spacer(1, 20))
+        
+        # Composite Score
+        elements.append(Paragraph("COMPOSITE FORENSIC SCORE", heading_style))
+        
+        # Determine verdict color
+        if request.composite_score >= 88:
+            verdict_color = colors.HexColor('#22c55e')
+        elif request.composite_score >= 70:
+            verdict_color = colors.HexColor('#f59e0b')
+        else:
+            verdict_color = colors.HexColor('#ef4444')
+        
+        score_style_colored = ParagraphStyle('ScoreColored', parent=score_style, textColor=verdict_color)
+        elements.append(Paragraph(f"{request.composite_score:.1f}%", score_style_colored))
+        
+        verdict_style_colored = ParagraphStyle('VerdictColored', parent=verdict_style, textColor=verdict_color)
+        elements.append(Paragraph(request.verdict, verdict_style_colored))
+        elements.append(Spacer(1, 10))
+        
+        # Sample Images
+        elements.append(Paragraph("SAMPLE IMAGES", heading_style))
+        
+        def base64_to_rl_image(b64_str: str, width: float, height: float) -> RLImage:
+            if ',' in b64_str:
+                b64_str = b64_str.split(',')[1]
+            img_data = base64.b64decode(b64_str)
+            img_buffer = io.BytesIO(img_data)
+            return RLImage(img_buffer, width=width, height=height)
+        
+        try:
+            q_img = base64_to_rl_image(request.questioned_thumb, 2*inch, 2*inch)
+            k_img = base64_to_rl_image(request.known_thumb, 2*inch, 2*inch)
+            
+            img_table = Table([
+                [Paragraph("Questioned Document", normal_style), Paragraph("Known Sample", normal_style)],
+                [q_img, k_img]
+            ], colWidths=[3*inch, 3*inch])
+            img_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ]))
+            elements.append(img_table)
+        except Exception as e:
+            logger.warning(f"Could not add images to PDF: {e}")
+            elements.append(Paragraph("(Images could not be rendered)", normal_style))
+        
+        elements.append(Spacer(1, 15))
+        
+        # Sub-Scores Table
+        elements.append(Paragraph("ANALYSIS BREAKDOWN", heading_style))
+        
+        score_data = [["Metric", "Score", "Details"]]
+        for sub in request.sub_scores:
+            score_data.append([
+                sub.get('name', ''),
+                f"{sub.get('score', 0):.1f}%",
+                sub.get('description', '')
+            ])
+        
+        score_table = Table(score_data, colWidths=[1.8*inch, 1*inch, 3.2*inch])
+        score_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e293b')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('TOPPADDING', (0, 0), (-1, 0), 10),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f8fafc')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f1f5f9')]),
+        ]))
+        elements.append(score_table)
+        elements.append(Spacer(1, 15))
+        
+        # AI Analysis (if available)
+        if request.ai_analysis:
+            elements.append(Paragraph("AI DEEP ANALYSIS", heading_style))
+            # Truncate if too long
+            ai_text = request.ai_analysis[:2000] + "..." if len(request.ai_analysis) > 2000 else request.ai_analysis
+            # Clean up for PDF
+            ai_text = ai_text.replace('\n', '<br/>')
+            elements.append(Paragraph(ai_text, normal_style))
+        
+        # Build PDF
+        doc.build(elements)
+        
+        pdf_bytes = buffer.getvalue()
+        pdf_base64 = base64.b64encode(pdf_bytes).decode()
+        
+        logger.info(f"PDF generated successfully, size: {len(pdf_bytes)} bytes")
+        
+        return {
+            "pdf_base64": pdf_base64,
+            "filename": f"forensic_report_{request.comparison_id[:8]}.pdf"
+        }
+        
+    except Exception as e:
+        logger.error(f"PDF generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {str(e)}")
+
 # Include the router in the main app
 app.include_router(api_router)
 
