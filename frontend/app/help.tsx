@@ -57,7 +57,7 @@ export default function HelpScreen() {
     { name: 'Curvature Match', desc: 'Stroke curvature statistics' },
     { name: 'Structural Similarity', desc: 'SSIM index between images' },
     { name: 'Correlation', desc: 'Normalized cross-correlation score' },
-    { name: 'AI Deep Analysis', desc: 'GPT-4o forensic expert analysis' },
+    { name: 'AI Deep Analysis', desc: 'Grok Vision forensic expert analysis' },
   ];
 
   return (
