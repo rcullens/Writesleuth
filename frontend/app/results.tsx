@@ -234,6 +234,15 @@ export default function ResultsScreen() {
 
         {/* Actions */}
         <View style={styles.actionsContainer}>
+          {/* Crop & Overlay Mode Button - Prominent forensic-blue */}
+          <TouchableOpacity
+            style={styles.overlayModeButton}
+            onPress={handleCropOverlayMode}
+          >
+            <Ionicons name="layers-outline" size={20} color="#fff" />
+            <Text style={styles.actionButtonText}>Crop & Overlay Mode</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.saveButton}
             onPress={handleSaveReport}
