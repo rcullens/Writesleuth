@@ -228,7 +228,7 @@ export default function HomeScreen() {
             size={24}
             color={useAI ? '#3b82f6' : '#64748b'}
           />
-          <Text style={styles.aiToggleText}>Use AI Deep Analysis (GPT-4o)</Text>
+          <Text style={styles.aiToggleText}>Use AI Deep Analysis (Grok Vision)</Text>
         </TouchableOpacity>
 
         {/* Compare Button */}
