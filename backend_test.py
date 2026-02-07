@@ -268,6 +268,106 @@ def test_compare_endpoint_with_ai():
         print(f"❌ Compare endpoint with AI error: {e}")
         return False
 
+def test_pdf_generation_endpoint():
+    """Test POST /generate-pdf endpoint"""
+    print("\nTesting POST /generate-pdf endpoint...")
+    try:
+        # Create test images as specified in the review request
+        img1 = create_test_handwriting_image("Test Sample 1", 300, 150)
+        img2 = create_test_handwriting_image("Test Sample 2", 300, 150)
+        img3 = create_test_handwriting_image("Processed 1", 300, 150)
+        img4 = create_test_handwriting_image("Processed 2", 300, 150)
+        img5 = create_test_handwriting_image("Heatmap", 300, 150)
+        
+        # Convert to base64 (without data URL prefix for the request)
+        def img_to_base64_clean(img):
+            buffer = io.BytesIO()
+            img.save(buffer, format='PNG')
+            return base64.b64encode(buffer.getvalue()).decode()
+        
+        questioned_thumb = img_to_base64_clean(img1)
+        known_thumb = img_to_base64_clean(img2)
+        processed_questioned = img_to_base64_clean(img3)
+        processed_known = img_to_base64_clean(img4)
+        difference_heatmap = img_to_base64_clean(img5)
+        
+        # Prepare request data as specified in the review request
+        request_data = {
+            "comparison_id": "test-123",
+            "questioned_thumb": questioned_thumb,
+            "known_thumb": known_thumb,
+            "processed_questioned": processed_questioned,
+            "processed_known": processed_known,
+            "difference_heatmap": difference_heatmap,
+            "composite_score": 85.5,
+            "sub_scores": [
+                {"name": "Macro Geometry", "score": 84.0, "description": "Test description"},
+                {"name": "Stroke Distribution", "score": 78.5, "description": "Stroke width similarity"}
+            ],
+            "verdict": "High probability same writer",
+            "ai_analysis": "This is a test AI analysis text."
+        }
+        
+        print("Sending PDF generation request...")
+        response = requests.post(
+            f"{BACKEND_URL}/generate-pdf",
+            json=request_data,
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+        
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("Response keys:", list(data.keys()))
+            
+            # Check required fields as specified in review request
+            required_fields = ['pdf_base64', 'filename']
+            missing_fields = [field for field in required_fields if field not in data]
+            if missing_fields:
+                print(f"❌ PDF generation endpoint missing fields: {missing_fields}")
+                return False
+            
+            # Validate the response format
+            pdf_base64 = data.get('pdf_base64', '')
+            filename = data.get('filename', '')
+            
+            if not pdf_base64:
+                print("❌ PDF generation endpoint returned empty pdf_base64")
+                return False
+            
+            if not filename.startswith('forensic_report_') or not filename.endswith('.pdf'):
+                print(f"❌ PDF generation endpoint returned invalid filename: {filename}")
+                return False
+            
+            # Check if the base64 is valid PDF content
+            try:
+                pdf_bytes = base64.b64decode(pdf_base64)
+                if not pdf_bytes.startswith(b'%PDF'):
+                    print("❌ PDF generation endpoint returned invalid PDF content")
+                    return False
+            except Exception as e:
+                print(f"❌ PDF generation endpoint returned invalid base64: {e}")
+                return False
+            
+            print(f"PDF filename: {filename}")
+            print(f"PDF size: {len(pdf_bytes)} bytes")
+            print("✅ PDF generation endpoint working correctly")
+            return True
+        else:
+            print(f"❌ PDF generation endpoint failed with status {response.status_code}")
+            try:
+                error_detail = response.json()
+                print(f"Error details: {error_detail}")
+            except:
+                print(f"Error text: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ PDF generation endpoint error: {e}")
+        return False
+
 def run_all_tests():
     """Run all backend API tests"""
     print("=" * 60)
