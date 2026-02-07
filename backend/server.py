@@ -388,10 +388,7 @@ Provide a similarity score from 0-100 and detailed analysis."""
         if ',' in img2_base64:
             img2_base64 = img2_base64.split(',')[1]
         
-        # Create image contents - using a single combined image approach
-        # Since API may have limitations, we'll send them separately as file_contents
-        from emergentintegrations.llm.chat import FileContentWithMimeType
-        
+        # Create image contents - using file_contents approach
         # Save images temporarily for analysis
         import tempfile
         temp_dir = tempfile.gettempdir()
