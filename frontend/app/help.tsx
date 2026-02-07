@@ -37,7 +37,7 @@ export default function HelpScreen() {
     {
       icon: 'sparkles',
       title: 'AI-Powered Analysis',
-      description: 'GPT-4o Vision analysis provides expert-level forensic insights.',
+      description: 'Grok Vision analysis provides expert-level forensic insights.',
     },
     {
       icon: 'time',
