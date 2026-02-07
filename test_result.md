@@ -201,6 +201,18 @@ backend:
         - agent: "testing"
         - comment: "MongoDB integration working correctly. Comparisons are saved to database and retrieved successfully"
 
+  - task: "PDF Report Generation Endpoint"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+        - agent: "testing"
+        - comment: "POST /generate-pdf endpoint working correctly. Successfully generates PDF reports with base64 images, composite scores, sub-scores, verdict, and AI analysis. Returns valid PDF in base64 format with proper filename (forensic_report_test-123.pdf). PDF size: 5447 bytes. All required fields present in response."
+
 frontend:
   # Frontend testing not performed by testing agent
 
