@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { ComparisonResult, HistoryItem } from '../store/appStore';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://writesleuth.preview.emergentagent.com';
+// Use environment variable, fallback to relative URL for same-origin requests
+const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
 const api = axios.create({
   baseURL: `${API_BASE}/api`,
