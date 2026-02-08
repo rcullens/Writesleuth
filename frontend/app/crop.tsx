@@ -286,24 +286,21 @@ export default function CropSelectionScreen() {
           <>
             {/* Dark overlay - top */}
             <View
-              style={[styles.darkOverlay, { top: 0, left: 0, right: 0, height: cropRect.y }]}
-              pointerEvents="none"
+              style={[styles.darkOverlay, { top: 0, left: 0, right: 0, height: cropRect.y, pointerEvents: 'none' }]}
             />
             {/* Dark overlay - bottom */}
             <View
               style={[
                 styles.darkOverlay,
-                { top: cropRect.y + cropRect.height, left: 0, right: 0, bottom: 0 },
+                { top: cropRect.y + cropRect.height, left: 0, right: 0, bottom: 0, pointerEvents: 'none' },
               ]}
-              pointerEvents="none"
             />
             {/* Dark overlay - left */}
             <View
               style={[
                 styles.darkOverlay,
-                { top: cropRect.y, left: 0, width: cropRect.x, height: cropRect.height },
+                { top: cropRect.y, left: 0, width: cropRect.x, height: cropRect.height, pointerEvents: 'none' },
               ]}
-              pointerEvents="none"
             />
             {/* Dark overlay - right */}
             <View
@@ -314,9 +311,9 @@ export default function CropSelectionScreen() {
                   left: cropRect.x + cropRect.width,
                   right: 0,
                   height: cropRect.height,
+                  pointerEvents: 'none',
                 },
               ]}
-              pointerEvents="none"
             />
 
             {/* Crop Box */}
