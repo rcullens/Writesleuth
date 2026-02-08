@@ -150,9 +150,9 @@ export default function ResultsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Verdict Section */}
+        {/* Match Probability Section */}
         <View style={[styles.verdictContainer, { borderColor: currentResult.verdict_color }]}>
-          <Text style={styles.verdictLabel}>FORENSIC VERDICT</Text>
+          <Text style={styles.verdictLabel}>MATCH PROBABILITY</Text>
           <Text style={[styles.compositeScore, { color: currentResult.verdict_color }]}>
             {currentResult.composite_score.toFixed(1)}%
           </Text>
