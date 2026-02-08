@@ -49,13 +49,31 @@ export default function ResultsScreen() {
   };
 
   const handleCropOverlayMode = () => {
-    if (!questionedImage || !knownImage) {
-      Alert.alert('Missing Images', 'Both images are required for overlay comparison.');
+    // Use the original images if available, otherwise use thumbnails from result
+    let sourceImg = questionedImage;
+    let baseImg = knownImage;
+    
+    // Fallback to result thumbnails/processed images if originals not available
+    if (!sourceImg && currentResult?.questioned_image_thumb) {
+      sourceImg = `data:image/jpeg;base64,${currentResult.questioned_image_thumb}`;
+    }
+    if (!baseImg && currentResult?.known_image_thumb) {
+      baseImg = `data:image/jpeg;base64,${currentResult.known_image_thumb}`;
+    }
+    
+    if (!sourceImg || !baseImg) {
+      Alert.alert('Missing Images', 'Images are not available for overlay comparison. Please run a new comparison first.');
       return;
     }
+    
+    console.log('Starting crop mode with images:', {
+      sourceAvailable: !!sourceImg,
+      baseAvailable: !!baseImg,
+    });
+    
     resetAll();
-    setSourceImage(questionedImage);
-    setBaseImage(knownImage);
+    setSourceImage(sourceImg);
+    setBaseImage(baseImg);
     toggleCropMode(true);
     router.push('/crop');
   };
