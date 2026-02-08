@@ -118,10 +118,9 @@ export default function ResultsScreen() {
   };
 
   const renderScoreCard = (subScore: SubScore, index: number) => {
+    // Simple 50% threshold: green if >= 50%, red if < 50%
     const getScoreColor = (score: number) => {
-      if (score >= 85) return '#22c55e';
-      if (score >= 70) return '#f59e0b';
-      return '#ef4444';
+      return score >= 50 ? '#22c55e' : '#ef4444';
     };
 
     return (
