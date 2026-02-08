@@ -101,24 +101,18 @@ export default function HelpScreen() {
 
         {/* Verdict Thresholds */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Verdict Thresholds</Text>
+          <Text style={styles.sectionTitle}>Match Probability</Text>
           <View style={styles.thresholdsContainer}>
             <View style={styles.thresholdItem}>
               <View style={[styles.thresholdDot, { backgroundColor: '#22c55e' }]} />
               <Text style={styles.thresholdText}>
-                <Text style={styles.thresholdValue}>≥88%</Text> — High probability same writer
-              </Text>
-            </View>
-            <View style={styles.thresholdItem}>
-              <View style={[styles.thresholdDot, { backgroundColor: '#f59e0b' }]} />
-              <Text style={styles.thresholdText}>
-                <Text style={styles.thresholdValue}>70-88%</Text> — Possible / Inconclusive
+                <Text style={styles.thresholdValue}>≥50%</Text> — Match Likely (Green)
               </Text>
             </View>
             <View style={styles.thresholdItem}>
               <View style={[styles.thresholdDot, { backgroundColor: '#ef4444' }]} />
               <Text style={styles.thresholdText}>
-                <Text style={styles.thresholdValue}>{'<'}70%</Text> — Likely different writers
+                <Text style={styles.thresholdValue}>{'<'}50%</Text> — Match Unlikely (Red)
               </Text>
             </View>
           </View>
