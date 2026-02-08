@@ -540,19 +540,19 @@ async def perform_comparison(questioned_img: np.ndarray, known_img: np.ndarray, 
     # Create heatmap
     heatmap = create_difference_heatmap(q_processed['normalized'], k_processed['normalized'])
     
-    # Determine verdict
-    composite_pct = composite * 100
-    if composite_pct >= 88:
-        verdict = "High probability same writer"
+    # Calculate match probability
+    # The composite score represents similarity - we use it directly as match probability
+    match_probability = composite * 100
+    
+    # Determine verdict based on 50% threshold
+    if match_probability >= 50:
+        verdict = "Match Likely"
         verdict_color = "#22c55e"  # Green
-    elif composite_pct >= 70:
-        verdict = "Possible / Inconclusive"
-        verdict_color = "#f59e0b"  # Amber
     else:
-        verdict = "Likely different writers"
+        verdict = "Match Unlikely"
         verdict_color = "#ef4444"  # Red
     
-    # Build sub-scores
+    # Build sub-scores (converted to match probability format)
     sub_scores = [
         SubScore(name="Macro Geometry", score=round(macro_score * 100, 1), 
                 description=f"Slant: {q_slant:.1f}° vs {k_slant:.1f}°, Letter ratio: {q_ratio:.2f} vs {k_ratio:.2f}"),
@@ -574,7 +574,7 @@ async def perform_comparison(questioned_img: np.ndarray, known_img: np.ndarray, 
         ))
     
     return {
-        'composite_score': round(composite_pct, 1),
+        'composite_score': round(match_probability, 1),
         'sub_scores': sub_scores,
         'verdict': verdict,
         'verdict_color': verdict_color,
