@@ -33,6 +33,7 @@ export default function OverlayAdjustmentScreen() {
     overlayX,
     overlayY,
     overlayScale,
+    overlayRotation,
     overlayAlpha,
     showGrid,
     showCrosshair,
@@ -44,6 +45,7 @@ export default function OverlayAdjustmentScreen() {
     isComparing,
     setOverlayPosition,
     setOverlayScale,
+    setOverlayRotation,
     setOverlayAlpha,
     toggleGrid,
     toggleCrosshair,
@@ -56,20 +58,88 @@ export default function OverlayAdjustmentScreen() {
 
   const [imageLayout, setImageLayout] = useState({ width: 0, height: 0 });
   const [generatingPDF, setGeneratingPDF] = useState(false);
-  const startPos = useRef({ x: overlayX, y: overlayY });
+  
+  // Gesture state refs
+  const gestureState = useRef({
+    startX: overlayX,
+    startY: overlayY,
+    startScale: overlayScale,
+    startRotation: overlayRotation,
+    initialDistance: 0,
+    initialAngle: 0,
+    isMultiTouch: false,
+  });
 
-  // Pan responder for dragging overlay
+  // Calculate distance between two touch points
+  const getDistance = (touches: any[]) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].pageX - touches[1].pageX;
+    const dy = touches[0].pageY - touches[1].pageY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Calculate angle between two touch points
+  const getAngle = (touches: any[]) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[1].pageX - touches[0].pageX;
+    const dy = touches[1].pageY - touches[0].pageY;
+    return Math.atan2(dy, dx) * (180 / Math.PI);
+  };
+
+  // Pan responder for drag, pinch-to-zoom, and rotate
   const overlayPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        startPos.current = { x: overlayX, y: overlayY };
+      onPanResponderGrant: (evt) => {
+        const touches = evt.nativeEvent.touches;
+        gestureState.current = {
+          startX: overlayX,
+          startY: overlayY,
+          startScale: overlayScale,
+          startRotation: overlayRotation,
+          initialDistance: getDistance(touches),
+          initialAngle: getAngle(touches),
+          isMultiTouch: touches.length >= 2,
+        };
       },
-      onPanResponderMove: (_, gestureState) => {
-        const newX = startPos.current.x + gestureState.dx;
-        const newY = startPos.current.y + gestureState.dy;
-        setOverlayPosition(newX, newY);
+      onPanResponderMove: (evt, gs) => {
+        const touches = evt.nativeEvent.touches;
+        
+        if (touches.length >= 2) {
+          // Multi-touch: pinch to zoom and rotate
+          const currentDistance = getDistance(touches);
+          const currentAngle = getAngle(touches);
+          
+          if (gestureState.current.initialDistance > 0) {
+            // Calculate scale change
+            const scaleChange = currentDistance / gestureState.current.initialDistance;
+            const newScale = Math.max(0.25, Math.min(3, gestureState.current.startScale * scaleChange));
+            setOverlayScale(newScale);
+            
+            // Calculate rotation change
+            const angleChange = currentAngle - gestureState.current.initialAngle;
+            const newRotation = gestureState.current.startRotation + angleChange;
+            setOverlayRotation(newRotation);
+          }
+          
+          // Also allow panning during multi-touch
+          const newX = gestureState.current.startX + gs.dx;
+          const newY = gestureState.current.startY + gs.dy;
+          setOverlayPosition(newX, newY);
+        } else {
+          // Single touch: just drag
+          const newX = gestureState.current.startX + gs.dx;
+          const newY = gestureState.current.startY + gs.dy;
+          setOverlayPosition(newX, newY);
+        }
+      },
+      onPanResponderRelease: () => {
+        // Update gesture state for next interaction
+        gestureState.current.startX = overlayX;
+        gestureState.current.startY = overlayY;
+        gestureState.current.startScale = overlayScale;
+        gestureState.current.startRotation = overlayRotation;
       },
     })
   ).current;
@@ -154,6 +224,7 @@ export default function OverlayAdjustmentScreen() {
   const handleReset = () => {
     setOverlayPosition(50, 50);
     setOverlayScale(1.0);
+    setOverlayRotation(0);
     setOverlayAlpha(0.7);
   };
 
@@ -178,6 +249,11 @@ export default function OverlayAdjustmentScreen() {
   const handleBack = () => {
     resetAll();
     router.replace('/');
+  };
+
+  // Quick rotation buttons
+  const rotateBy = (degrees: number) => {
+    setOverlayRotation(overlayRotation + degrees);
   };
 
   const getScoreColor = (score: number) => {
@@ -211,6 +287,13 @@ export default function OverlayAdjustmentScreen() {
         <View style={styles.headerRight}>
           {isComparing && <ActivityIndicator size="small" color="#3b82f6" />}
         </View>
+      </View>
+
+      {/* Gesture Instructions */}
+      <View style={styles.gestureHint}>
+        <Text style={styles.gestureHintText}>
+          Drag to move • Pinch to zoom • Two-finger rotate
+        </Text>
       </View>
 
       {/* Main Image Area */}
@@ -254,13 +337,14 @@ export default function OverlayAdjustmentScreen() {
                 top: overlayY,
                 width: croppedWidth * overlayScale,
                 height: croppedHeight * overlayScale,
+                transform: [{ rotate: `${overlayRotation}deg` }],
               },
             ]}
             resizeMode="stretch"
           />
         )}
 
-        {/* Draggable Overlay Image */}
+        {/* Draggable, Scalable, Rotatable Overlay Image */}
         <View
           {...overlayPanResponder.panHandlers}
           style={[
@@ -271,6 +355,7 @@ export default function OverlayAdjustmentScreen() {
               width: croppedWidth * overlayScale,
               height: croppedHeight * overlayScale,
               opacity: overlayAlpha,
+              transform: [{ rotate: `${overlayRotation}deg` }],
             },
           ]}
         >
@@ -281,6 +366,10 @@ export default function OverlayAdjustmentScreen() {
           />
           {/* Border indicator */}
           <View style={styles.overlayBorder} />
+          {/* Rotation indicator */}
+          <View style={styles.rotationIndicator}>
+            <Ionicons name="sync" size={16} color="#3b82f6" />
+          </View>
         </View>
       </View>
 
@@ -302,6 +391,70 @@ export default function OverlayAdjustmentScreen() {
           </View>
         </View>
 
+        {/* Rotation Controls */}
+        <View style={styles.sliderContainer}>
+          <View style={styles.sliderHeader}>
+            <Text style={styles.sliderLabel}>Rotation</Text>
+            <Text style={styles.sliderValue}>{overlayRotation.toFixed(1)}°</Text>
+          </View>
+          <View style={styles.rotationControls}>
+            <TouchableOpacity style={styles.rotateButton} onPress={() => rotateBy(-15)}>
+              <Ionicons name="arrow-undo" size={18} color="#f8fafc" />
+              <Text style={styles.rotateButtonText}>-15°</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.rotateButton} onPress={() => rotateBy(-5)}>
+              <Text style={styles.rotateButtonText}>-5°</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.rotateButton} onPress={() => rotateBy(-1)}>
+              <Text style={styles.rotateButtonText}>-1°</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.rotateButton, styles.rotateResetButton]} 
+              onPress={() => setOverlayRotation(0)}
+            >
+              <Text style={styles.rotateButtonText}>0°</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.rotateButton} onPress={() => rotateBy(1)}>
+              <Text style={styles.rotateButtonText}>+1°</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.rotateButton} onPress={() => rotateBy(5)}>
+              <Text style={styles.rotateButtonText}>+5°</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.rotateButton} onPress={() => rotateBy(15)}>
+              <Ionicons name="arrow-redo" size={18} color="#f8fafc" />
+              <Text style={styles.rotateButtonText}>+15°</Text>
+            </TouchableOpacity>
+          </View>
+          <Slider
+            style={styles.slider}
+            minimumValue={-180}
+            maximumValue={180}
+            value={overlayRotation}
+            onValueChange={setOverlayRotation}
+            minimumTrackTintColor="#3b82f6"
+            maximumTrackTintColor="#334155"
+            thumbTintColor="#3b82f6"
+          />
+        </View>
+
+        {/* Scale Slider */}
+        <View style={styles.sliderContainer}>
+          <View style={styles.sliderHeader}>
+            <Text style={styles.sliderLabel}>Scale (Pinch to zoom)</Text>
+            <Text style={styles.sliderValue}>{Math.round(overlayScale * 100)}%</Text>
+          </View>
+          <Slider
+            style={styles.slider}
+            minimumValue={0.25}
+            maximumValue={3}
+            value={overlayScale}
+            onValueChange={setOverlayScale}
+            minimumTrackTintColor="#3b82f6"
+            maximumTrackTintColor="#334155"
+            thumbTintColor="#3b82f6"
+          />
+        </View>
+
         {/* Alpha Slider */}
         <View style={styles.sliderContainer}>
           <View style={styles.sliderHeader}>
@@ -314,24 +467,6 @@ export default function OverlayAdjustmentScreen() {
             maximumValue={1}
             value={overlayAlpha}
             onValueChange={setOverlayAlpha}
-            minimumTrackTintColor="#3b82f6"
-            maximumTrackTintColor="#334155"
-            thumbTintColor="#3b82f6"
-          />
-        </View>
-
-        {/* Scale Slider */}
-        <View style={styles.sliderContainer}>
-          <View style={styles.sliderHeader}>
-            <Text style={styles.sliderLabel}>Scale</Text>
-            <Text style={styles.sliderValue}>{Math.round(overlayScale * 100)}%</Text>
-          </View>
-          <Slider
-            style={styles.slider}
-            minimumValue={0.25}
-            maximumValue={2}
-            value={overlayScale}
-            onValueChange={setOverlayScale}
             minimumTrackTintColor="#3b82f6"
             maximumTrackTintColor="#334155"
             thumbTintColor="#3b82f6"
@@ -394,8 +529,9 @@ export default function OverlayAdjustmentScreen() {
         {/* Position Info */}
         <View style={styles.positionInfo}>
           <Text style={styles.positionText}>
-            Position: ({Math.round(overlayX)}, {Math.round(overlayY)}) | 
-            Size: {Math.round(croppedWidth * overlayScale)} × {Math.round(croppedHeight * overlayScale)}
+            Pos: ({Math.round(overlayX)}, {Math.round(overlayY)}) | 
+            Size: {Math.round(croppedWidth * overlayScale)} × {Math.round(croppedHeight * overlayScale)} | 
+            Rot: {overlayRotation.toFixed(1)}°
           </Text>
         </View>
       </ScrollView>
@@ -428,6 +564,16 @@ const styles = StyleSheet.create({
   headerRight: {
     width: 40,
     alignItems: 'center',
+  },
+  gestureHint: {
+    backgroundColor: '#1e293b',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  gestureHintText: {
+    fontSize: 12,
+    color: '#3b82f6',
+    textAlign: 'center',
   },
   imageArea: {
     flex: 1,
@@ -489,8 +635,21 @@ const styles = StyleSheet.create({
     borderColor: '#3b82f6',
     borderStyle: 'dashed',
   },
+  rotationIndicator: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1e293b',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+  },
   controlPanel: {
-    maxHeight: SCREEN_HEIGHT * 0.35,
+    maxHeight: SCREEN_HEIGHT * 0.42,
     backgroundColor: '#1e293b',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -502,7 +661,7 @@ const styles = StyleSheet.create({
   scoresRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   scoreCard: {
     flex: 1,
@@ -521,7 +680,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   sliderContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   sliderHeader: {
     flexDirection: 'row',
@@ -541,10 +700,36 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 40,
   },
+  rotationControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    gap: 4,
+  },
+  rotateButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    backgroundColor: '#334155',
+    borderRadius: 6,
+    gap: 2,
+  },
+  rotateResetButton: {
+    backgroundColor: '#0f172a',
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  rotateButtonText: {
+    fontSize: 11,
+    color: '#f8fafc',
+    fontWeight: '500',
+  },
   togglesRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   toggleButton: {
     flex: 1,
@@ -569,7 +754,7 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   actionButton: {
     flex: 1,
