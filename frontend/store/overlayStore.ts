@@ -21,6 +21,7 @@ export interface OverlayState {
   overlayX: number;
   overlayY: number;
   overlayScale: number;
+  overlayRotation: number; // New: rotation in degrees
   overlayAlpha: number;
   
   // Crop rect
@@ -50,6 +51,7 @@ export interface OverlayState {
   setCropRect: (rect: CropRect) => void;
   setOverlayPosition: (x: number, y: number) => void;
   setOverlayScale: (scale: number) => void;
+  setOverlayRotation: (rotation: number) => void;
   setOverlayAlpha: (alpha: number) => void;
   toggleCropMode: (enabled: boolean) => void;
   toggleOverlayMode: (enabled: boolean) => void;
@@ -73,6 +75,7 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   overlayX: 50,
   overlayY: 50,
   overlayScale: 1.0,
+  overlayRotation: 0,
   overlayAlpha: 0.7,
   cropRect: { x: 50, y: 50, width: 150, height: 100 },
   isCropMode: false,
@@ -98,6 +101,7 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   setCropRect: (rect) => set({ cropRect: rect }),
   setOverlayPosition: (x, y) => set({ overlayX: x, overlayY: y }),
   setOverlayScale: (scale) => set({ overlayScale: scale }),
+  setOverlayRotation: (rotation) => set({ overlayRotation: rotation }),
   setOverlayAlpha: (alpha) => set({ overlayAlpha: alpha }),
   toggleCropMode: (enabled) => set({ isCropMode: enabled }),
   toggleOverlayMode: (enabled) => set({ isOverlayMode: enabled }),
@@ -119,6 +123,7 @@ export const useOverlayStore = create<OverlayState>((set) => ({
     overlayX: 50,
     overlayY: 50,
     overlayScale: 1.0,
+    overlayRotation: 0,
     overlayAlpha: 0.7,
     isOverlayMode: false,
     localSSIM: 0,
@@ -135,6 +140,7 @@ export const useOverlayStore = create<OverlayState>((set) => ({
     overlayX: 50,
     overlayY: 50,
     overlayScale: 1.0,
+    overlayRotation: 0,
     overlayAlpha: 0.7,
     cropRect: { x: 50, y: 50, width: 150, height: 100 },
     isCropMode: false,
