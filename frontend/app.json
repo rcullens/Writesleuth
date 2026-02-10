@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "handwriting-forensic",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
