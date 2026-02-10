@@ -85,3 +85,7 @@ android-sdk/ -e
 # Environment files with secrets
 backend/.env
 frontend/.env
+-e 
+# Environment files
+*.env
+*.env.*

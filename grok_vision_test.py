@@ -12,7 +12,7 @@ from PIL import Image, ImageDraw, ImageFont
 import sys
 
 # Backend URL from frontend environment
-BACKEND_URL = "https://forensic-lab-test.preview.emergentagent.com/api"
+BACKEND_URL = "https://crop-zoom-app.preview.emergentagent.com/api"
 
 def create_handwriting_sample_1():
     """Create first handwriting sample with distinct characteristics"""

@@ -13,7 +13,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos of handwriting samples for forensic comparison",
         "NSPhotoLibraryUsageDescription": "Select handwriting images from your gallery"
-      }
+      },
+      "bundleIdentifier": "com.writesleuth.forensic"
     },
     "android": {
       "package": "com.writesleuth.forensic",

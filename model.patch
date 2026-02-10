@@ -36,7 +36,7 @@ index ad8a897..e69de29 100644
 ----+from PIL import Image, ImageDraw, ImageFont
 ----+
 ----+# Backend URL
-----+BACKEND_URL = "https://forensic-lab-test.preview.emergentagent.com/api"
+----+BACKEND_URL = "https://crop-zoom-app.preview.emergentagent.com/api"
 ----+
 ----+def create_simple_handwriting():
 ----+    """Create a simple handwriting sample"""
@@ -123,7 +123,7 @@ index ad8a897..e69de29 100644
 ----+import sys
 ----+
 ----+# Backend URL from frontend environment
-----+BACKEND_URL = "https://forensic-lab-test.preview.emergentagent.com/api"
+----+BACKEND_URL = "https://crop-zoom-app.preview.emergentagent.com/api"
 ----+
 ----+def create_handwriting_sample_1():
 ----+    """Create first handwriting sample with distinct characteristics"""
