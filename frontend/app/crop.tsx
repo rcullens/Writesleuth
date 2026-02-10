@@ -75,68 +75,83 @@ export default function CropSelectionScreen() {
     cropHeight.value = height * 0.5;
   };
 
-  // Gesture for moving the entire crop box
+  // Gesture for moving the entire crop box - FIXED: save start position and use delta
   const moveGesture = Gesture.Pan()
+    .onStart(() => {
+      'worklet';
+      startX.value = cropX.value;
+      startY.value = cropY.value;
+    })
     .onUpdate((e) => {
-      const newX = cropX.value + e.translationX;
-      const newY = cropY.value + e.translationY;
+      'worklet';
+      const newX = startX.value + e.translationX;
+      const newY = startY.value + e.translationY;
       
       // Constrain to bounds
       cropX.value = Math.max(0, Math.min(newX, imageLayout.width - cropWidth.value));
       cropY.value = Math.max(0, Math.min(newY, imageLayout.height - cropHeight.value));
-    })
-    .onEnd(() => {
-      // Reset translation
     });
 
-  // Gesture for resizing from corners
+  // Gesture for resizing from corners - FIXED: save all start values
   const createCornerGesture = (corner: string) => {
     return Gesture.Pan()
+      .onStart(() => {
+        'worklet';
+        startX.value = cropX.value;
+        startY.value = cropY.value;
+        startW.value = cropWidth.value;
+        startH.value = cropHeight.value;
+      })
       .onUpdate((e) => {
+        'worklet';
         const dx = e.translationX;
         const dy = e.translationY;
 
         switch (corner) {
-          case 'tl':
-            const newXTL = cropX.value + dx;
-            const newYTL = cropY.value + dy;
-            const newWTL = cropWidth.value - dx;
-            const newHTL = cropHeight.value - dy;
-            if (newWTL >= MIN_SIZE && newHTL >= MIN_SIZE && newXTL >= 0 && newYTL >= 0) {
-              cropX.value = newXTL;
-              cropY.value = newYTL;
-              cropWidth.value = newWTL;
-              cropHeight.value = newHTL;
+          case 'tl': {
+            const newX = startX.value + dx;
+            const newY = startY.value + dy;
+            const newW = startW.value - dx;
+            const newH = startH.value - dy;
+            if (newW >= MIN_SIZE && newH >= MIN_SIZE && newX >= 0 && newY >= 0) {
+              cropX.value = newX;
+              cropY.value = newY;
+              cropWidth.value = newW;
+              cropHeight.value = newH;
             }
             break;
-          case 'tr':
-            const newYTR = cropY.value + dy;
-            const newWTR = cropWidth.value + dx;
-            const newHTR = cropHeight.value - dy;
-            if (newWTR >= MIN_SIZE && newHTR >= MIN_SIZE && newYTR >= 0) {
-              cropY.value = newYTR;
-              cropWidth.value = Math.min(newWTR, imageLayout.width - cropX.value);
-              cropHeight.value = newHTR;
+          }
+          case 'tr': {
+            const newY = startY.value + dy;
+            const newW = startW.value + dx;
+            const newH = startH.value - dy;
+            if (newW >= MIN_SIZE && newH >= MIN_SIZE && newY >= 0) {
+              cropY.value = newY;
+              cropWidth.value = Math.min(newW, imageLayout.width - startX.value);
+              cropHeight.value = newH;
             }
             break;
-          case 'bl':
-            const newXBL = cropX.value + dx;
-            const newWBL = cropWidth.value - dx;
-            const newHBL = cropHeight.value + dy;
-            if (newWBL >= MIN_SIZE && newHBL >= MIN_SIZE && newXBL >= 0) {
-              cropX.value = newXBL;
-              cropWidth.value = newWBL;
-              cropHeight.value = Math.min(newHBL, imageLayout.height - cropY.value);
+          }
+          case 'bl': {
+            const newX = startX.value + dx;
+            const newW = startW.value - dx;
+            const newH = startH.value + dy;
+            if (newW >= MIN_SIZE && newH >= MIN_SIZE && newX >= 0) {
+              cropX.value = newX;
+              cropWidth.value = newW;
+              cropHeight.value = Math.min(newH, imageLayout.height - startY.value);
             }
             break;
-          case 'br':
-            const newWBR = cropWidth.value + dx;
-            const newHBR = cropHeight.value + dy;
-            if (newWBR >= MIN_SIZE && newHBR >= MIN_SIZE) {
-              cropWidth.value = Math.min(newWBR, imageLayout.width - cropX.value);
-              cropHeight.value = Math.min(newHBR, imageLayout.height - cropY.value);
+          }
+          case 'br': {
+            const newW = startW.value + dx;
+            const newH = startH.value + dy;
+            if (newW >= MIN_SIZE && newH >= MIN_SIZE) {
+              cropWidth.value = Math.min(newW, imageLayout.width - startX.value);
+              cropHeight.value = Math.min(newH, imageLayout.height - startY.value);
             }
             break;
+          }
         }
       });
   };
