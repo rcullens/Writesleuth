@@ -1,6 +1,7 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { STEAMPUNK_COLORS as C } from '../styles/theme';
 
 export default function RootLayout() {
   return (
@@ -9,21 +10,23 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#0f172a',
+            backgroundColor: C.bgPanel,
           },
-          headerTintColor: '#f8fafc',
+          headerTintColor: C.brass,
           headerTitleStyle: {
             fontWeight: 'bold',
+            letterSpacing: 1,
           },
           contentStyle: {
-            backgroundColor: '#0f172a',
+            backgroundColor: C.bgDark,
           },
+          headerShadowVisible: false,
         }}
       >
         <Stack.Screen
           name="index"
           options={{
-            title: 'Handwriting Forensic',
+            title: 'WRITESLEUTH',
             headerShown: true,
           }}
         />
@@ -37,20 +40,20 @@ export default function RootLayout() {
         <Stack.Screen
           name="history"
           options={{
-            title: 'Comparison History',
+            title: 'Case Files',
           }}
         />
         <Stack.Screen
           name="help"
           options={{
-            title: 'About & Help',
+            title: 'Apparatus Guide',
             presentation: 'modal',
           }}
         />
         <Stack.Screen
           name="crop"
           options={{
-            title: 'Crop Selection',
+            title: 'Specimen Extraction',
             presentation: 'fullScreenModal',
             headerShown: false,
           }}
@@ -58,7 +61,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="overlay"
           options={{
-            title: 'Overlay Adjustment',
+            title: 'Overlay Analysis',
             presentation: 'fullScreenModal',
             headerShown: false,
           }}
