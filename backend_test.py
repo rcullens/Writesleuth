@@ -14,7 +14,7 @@ import sys
 import os
 
 # Backend URL from frontend environment
-BACKEND_URL = "https://writesleuth.preview.emergentagent.com/api"
+BACKEND_URL = "https://forensic-lab-test.preview.emergentagent.com/api"
 
 def create_test_handwriting_image(text="Sample handwriting", width=400, height=200):
     """Create a realistic handwriting-like image for testing"""

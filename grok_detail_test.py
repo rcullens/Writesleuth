@@ -10,7 +10,7 @@ import io
 from PIL import Image, ImageDraw, ImageFont
 
 # Backend URL
-BACKEND_URL = "https://writesleuth.preview.emergentagent.com/api"
+BACKEND_URL = "https://forensic-lab-test.preview.emergentagent.com/api"
 
 def create_simple_handwriting():
     """Create a simple handwriting sample"""
