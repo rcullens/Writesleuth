@@ -118,26 +118,31 @@ export default function OverlayAdjustmentScreen() {
       runOnJS(updateStore)();
     });
 
-  // Fixed pinch gesture with damping
+  // Fixed pinch gesture with stronger damping and proper tracking
   const pinchGesture = Gesture.Pinch()
     .onStart(() => {
+      'worklet';
       savedScale.value = scale.value;
     })
     .onUpdate((e) => {
-      // Apply damping to make zoom less sensitive
-      const dampingFactor = 0.5; // Reduce sensitivity by 50%
-      const scaleChange = 1 + (e.scale - 1) * dampingFactor;
-      const newScale = savedScale.value * scaleChange;
+      'worklet';
+      // Apply stronger damping to make zoom less sensitive
+      // e.scale is relative to start (1.0 = no change)
+      const dampingFactor = 0.4; // Reduce sensitivity by 60%
+      const scaleDelta = e.scale - 1; // How much change from initial
+      const dampedDelta = scaleDelta * dampingFactor;
+      const newScale = savedScale.value * (1 + dampedDelta);
       
-      // Clamp between 0.3 and 2.5
+      // Clamp between 0.3 and 2.5 for smoother feel
       scale.value = Math.max(0.3, Math.min(2.5, newScale));
       runOnJS(updateDisplayValues)();
     })
     .onEnd(() => {
-      // Snap to nearest 10% if close
+      'worklet';
+      // Snap to nearest 10% if close for cleaner values
       const rounded = Math.round(scale.value * 10) / 10;
       if (Math.abs(scale.value - rounded) < 0.05) {
-        scale.value = withSpring(rounded, { damping: 15, stiffness: 150 });
+        scale.value = withSpring(rounded, { damping: 20, stiffness: 200 });
       }
       runOnJS(updateStore)();
       runOnJS(runLocalComparison)();
