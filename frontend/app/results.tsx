@@ -10,7 +10,6 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -20,6 +19,7 @@ import * as Sharing from 'expo-sharing';
 import { useAppStore, SubScore } from '../store/appStore';
 import { useOverlayStore } from '../store/overlayStore';
 import { generatePDFReport } from '../services/api';
+import { STEAMPUNK_COLORS as C } from '../styles/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -33,7 +33,7 @@ export default function ResultsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyState}>
-          <Ionicons name="alert-circle-outline" size={64} color="#64748b" />
+          <Ionicons name="alert-circle-outline" size={64} color={C.textDim} />
           <Text style={styles.emptyText}>No results available</Text>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backButtonText}>Go Back</Text>
@@ -49,11 +49,9 @@ export default function ResultsScreen() {
   };
 
   const handleCropOverlayMode = () => {
-    // Use the original images if available, otherwise use thumbnails from result
     let sourceImg = questionedImage;
     let baseImg = knownImage;
     
-    // Fallback to result thumbnails/processed images if originals not available
     if (!sourceImg && currentResult?.questioned_image_thumb) {
       sourceImg = `data:image/jpeg;base64,${currentResult.questioned_image_thumb}`;
     }
@@ -103,12 +101,10 @@ export default function ResultsScreen() {
       const filename = pdfResponse.filename;
       const fileUri = `${FileSystem.documentDirectory}${filename}`;
       
-      // Write PDF to file
       await FileSystem.writeAsStringAsync(fileUri, pdfResponse.pdf_base64, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // Check if sharing is available
       const canShare = await Sharing.isAvailableAsync();
       
       if (canShare) {
@@ -118,7 +114,6 @@ export default function ResultsScreen() {
           UTI: 'com.adobe.pdf',
         });
       } else if (Platform.OS === 'web') {
-        // For web, create a download link
         const link = document.createElement('a');
         link.href = `data:application/pdf;base64,${pdfResponse.pdf_base64}`;
         link.download = filename;
@@ -136,10 +131,7 @@ export default function ResultsScreen() {
   };
 
   const renderScoreCard = (subScore: SubScore, index: number) => {
-    // Simple 50% threshold: green if >= 50%, red if < 50%
-    const getScoreColor = (score: number) => {
-      return score >= 50 ? '#22c55e' : '#ef4444';
-    };
+    const getScoreColor = (score: number) => score >= 50 ? C.success : C.danger;
 
     return (
       <View key={index} style={styles.scoreCard}>
@@ -170,28 +162,39 @@ export default function ResultsScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Match Probability Section */}
         <View style={[styles.verdictContainer, { borderColor: currentResult.verdict_color }]}>
-          <Text style={styles.verdictLabel}>MATCH PROBABILITY</Text>
+          <View style={styles.verdictHeader}>
+            <Ionicons name="analytics" size={20} color={C.brass} />
+            <Text style={styles.verdictLabel}>MATCH PROBABILITY</Text>
+          </View>
           <Text style={[styles.compositeScore, { color: currentResult.verdict_color }]}>
             {currentResult.composite_score.toFixed(1)}%
           </Text>
           <Text style={[styles.verdictText, { color: currentResult.verdict_color }]}>
             {currentResult.verdict}
           </Text>
+          {/* Decorative rivets */}
+          <View style={[styles.rivet, styles.rivetTL]} />
+          <View style={[styles.rivet, styles.rivetTR]} />
+          <View style={[styles.rivet, styles.rivetBL]} />
+          <View style={[styles.rivet, styles.rivetBR]} />
         </View>
 
         {/* Side by Side Comparison */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Original Samples</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="images-outline" size={16} color={C.brass} />
+            <Text style={styles.sectionTitle}>Original Specimens</Text>
+          </View>
           <View style={styles.imageRow}>
             <View style={styles.imageContainer}>
-              <Text style={styles.imageLabel}>Questioned (QD)</Text>
+              <Text style={styles.imageLabel}>QUESTIONED (QD)</Text>
               <Image
                 source={{ uri: `data:image/jpeg;base64,${currentResult.questioned_image_thumb}` }}
                 style={styles.sampleImage}
               />
             </View>
             <View style={styles.imageContainer}>
-              <Text style={styles.imageLabel}>Known (K)</Text>
+              <Text style={styles.imageLabel}>KNOWN (K)</Text>
               <Image
                 source={{ uri: `data:image/jpeg;base64,${currentResult.known_image_thumb}` }}
                 style={styles.sampleImage}
@@ -202,7 +205,10 @@ export default function ResultsScreen() {
 
         {/* Processed Images */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Processed / Normalized</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="construct-outline" size={16} color={C.brass} />
+            <Text style={styles.sectionTitle}>Processed / Normalized</Text>
+          </View>
           <View style={styles.imageRow}>
             <View style={styles.imageContainer}>
               <Image
@@ -221,7 +227,10 @@ export default function ResultsScreen() {
 
         {/* Difference Heatmap */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Difference Heatmap</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="thermometer-outline" size={16} color={C.brass} />
+            <Text style={styles.sectionTitle}>Difference Heatmap</Text>
+          </View>
           <Text style={styles.heatmapNote}>Red regions indicate higher dissimilarity</Text>
           <Image
             source={{ uri: `data:image/png;base64,${currentResult.difference_heatmap}` }}
@@ -231,16 +240,20 @@ export default function ResultsScreen() {
 
         {/* Sub-Scores */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Analysis Breakdown</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="bar-chart-outline" size={16} color={C.brass} />
+            <Text style={styles.sectionTitle}>Analysis Breakdown</Text>
+          </View>
           {currentResult.sub_scores.map((score, index) => renderScoreCard(score, index))}
         </View>
 
         {/* AI Analysis */}
         {currentResult.ai_analysis && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              <Ionicons name="sparkles" size={16} color="#3b82f6" /> AI Deep Analysis
-            </Text>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="sparkles" size={16} color={C.brass} />
+              <Text style={styles.sectionTitle}>GROK Vision Analysis</Text>
+            </View>
             <View style={styles.aiAnalysisCard}>
               <ScrollView style={styles.aiAnalysisScroll} nestedScrollEnabled>
                 <Text style={styles.aiAnalysisText}>{currentResult.ai_analysis}</Text>
@@ -251,36 +264,37 @@ export default function ResultsScreen() {
 
         {/* Actions */}
         <View style={styles.actionsContainer}>
-          {/* Crop & Overlay Mode Button - Prominent forensic-blue */}
           <TouchableOpacity
             style={styles.overlayModeButton}
             onPress={handleCropOverlayMode}
+            data-testid="crop-overlay-mode-btn"
           >
-            <Ionicons name="layers-outline" size={20} color="#fff" />
-            <Text style={styles.actionButtonText}>Crop & Overlay Mode</Text>
+            <Ionicons name="layers-outline" size={20} color={C.bgDark} />
+            <Text style={styles.primaryActionText}>Crop & Overlay Mode</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.saveButton}
             onPress={handleSaveReport}
             disabled={generatingPDF}
+            data-testid="save-report-btn"
           >
             {generatingPDF ? (
               <>
-                <ActivityIndicator size="small" color="#fff" />
-                <Text style={styles.actionButtonText}>Generating PDF...</Text>
+                <ActivityIndicator size="small" color={C.bgDark} />
+                <Text style={styles.secondaryActionText}>Generating PDF...</Text>
               </>
             ) : (
               <>
-                <Ionicons name="document-text-outline" size={20} color="#fff" />
-                <Text style={styles.actionButtonText}>Save Report (PDF)</Text>
+                <Ionicons name="document-text-outline" size={20} color={C.bgDark} />
+                <Text style={styles.secondaryActionText}>Save Report (PDF)</Text>
               </>
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={handleNewComparison}>
-            <Ionicons name="add-circle-outline" size={20} color="#fff" />
-            <Text style={styles.actionButtonText}>New Comparison</Text>
+          <TouchableOpacity style={styles.actionButton} onPress={handleNewComparison} data-testid="new-comparison-btn">
+            <Ionicons name="add-circle-outline" size={20} color={C.brass} />
+            <Text style={styles.tertiaryActionText}>New Comparison</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -291,7 +305,7 @@ export default function ResultsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: C.bgDark,
   },
   scrollView: {
     flex: 1,
@@ -307,54 +321,86 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   emptyText: {
-    fontSize: 18,
-    color: '#64748b',
+    fontSize: 16,
+    color: C.textDim,
     marginTop: 16,
+    letterSpacing: 1,
   },
   backButton: {
     marginTop: 24,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#3b82f6',
-    borderRadius: 8,
+    backgroundColor: C.brass,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: C.brassLight,
   },
   backButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: C.bgDark,
+    fontSize: 14,
     fontWeight: '600',
+    letterSpacing: 1,
   },
   verdictContainer: {
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
+    backgroundColor: C.bgPanel,
+    borderRadius: 12,
     padding: 24,
     alignItems: 'center',
     borderWidth: 2,
     marginBottom: 24,
+    position: 'relative',
+  },
+  verdictHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   verdictLabel: {
-    fontSize: 12,
-    color: '#64748b',
+    fontSize: 11,
+    color: C.brass,
     letterSpacing: 2,
-    marginBottom: 8,
+    fontWeight: '600',
   },
   compositeScore: {
     fontSize: 56,
     fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   verdictText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     marginTop: 8,
     textAlign: 'center',
+    letterSpacing: 1,
   },
+  rivet: { 
+    position: 'absolute', 
+    width: 8, 
+    height: 8, 
+    borderRadius: 4, 
+    backgroundColor: C.rivet,
+    borderWidth: 1,
+    borderColor: C.brassDark,
+  },
+  rivetTL: { top: 8, left: 8 },
+  rivetTR: { top: 8, right: 8 },
+  rivetBL: { bottom: 8, left: 8 },
+  rivetBR: { bottom: 8, right: 8 },
   section: {
     marginBottom: 24,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#f8fafc',
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: C.text,
+    letterSpacing: 1,
   },
   imageRow: {
     flexDirection: 'row',
@@ -364,39 +410,50 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   imageLabel: {
-    fontSize: 12,
-    color: '#94a3b8',
+    fontSize: 10,
+    color: C.brass,
     marginBottom: 8,
     textAlign: 'center',
+    letterSpacing: 1,
+    fontWeight: '600',
   },
   sampleImage: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: 12,
-    backgroundColor: '#1e293b',
+    borderRadius: 8,
+    backgroundColor: C.bgPanel,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   processedImage: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: 12,
+    borderRadius: 8,
     backgroundColor: '#000',
+    borderWidth: 1,
+    borderColor: C.border,
   },
   heatmapNote: {
-    fontSize: 12,
-    color: '#64748b',
+    fontSize: 11,
+    color: C.textDim,
     marginBottom: 8,
+    letterSpacing: 0.5,
   },
   heatmapImage: {
     width: '100%',
     aspectRatio: 1.5,
-    borderRadius: 12,
-    backgroundColor: '#1e293b',
+    borderRadius: 8,
+    backgroundColor: C.bgPanel,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   scoreCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: C.bgPanel,
+    borderRadius: 10,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   scoreCardHeader: {
     flexDirection: 'row',
@@ -405,17 +462,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   scoreCardName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#f8fafc',
+    color: C.text,
+    letterSpacing: 0.5,
   },
   scoreCardValue: {
     fontSize: 18,
     fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   scoreBar: {
     height: 6,
-    backgroundColor: '#334155',
+    backgroundColor: C.bgCard,
     borderRadius: 3,
     marginBottom: 8,
   },
@@ -424,21 +483,24 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   scoreCardDesc: {
-    fontSize: 12,
-    color: '#64748b',
+    fontSize: 11,
+    color: C.textDim,
+    lineHeight: 16,
   },
   aiAnalysisCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: C.bgPanel,
+    borderRadius: 10,
     padding: 16,
     maxHeight: 300,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   aiAnalysisScroll: {
     maxHeight: 250,
   },
   aiAnalysisText: {
     fontSize: 13,
-    color: '#cbd5e1',
+    color: C.text,
     lineHeight: 20,
   },
   actionsContainer: {
@@ -447,37 +509,52 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   overlayModeButton: {
-    backgroundColor: '#1d4ed8',
+    backgroundColor: C.brass,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 10,
     gap: 8,
     borderWidth: 2,
-    borderColor: '#3b82f6',
+    borderColor: C.brassLight,
+  },
+  primaryActionText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: C.bgDark,
+    letterSpacing: 1,
   },
   saveButton: {
-    backgroundColor: '#059669',
+    backgroundColor: C.success,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 10,
     gap: 8,
+  },
+  secondaryActionText: {
+    color: C.bgDark,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
   actionButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: C.bgPanel,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 10,
     gap: 8,
+    borderWidth: 1,
+    borderColor: C.brass,
   },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 16,
+  tertiaryActionText: {
+    color: C.brass,
+    fontSize: 14,
     fontWeight: '600',
+    letterSpacing: 1,
   },
 });
