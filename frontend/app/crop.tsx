@@ -16,6 +16,7 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { useOverlayStore } from '../store/overlayStore';
 import { cropRegion } from '../services/api';
+import { STEAMPUNK_COLORS as C } from '../styles/theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -253,10 +254,10 @@ export default function CropSelectionScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyState}>
-          <Ionicons name="image-outline" size={64} color="#64748b" />
-          <Text style={styles.emptyText}>No image to crop</Text>
+          <Ionicons name="image-outline" size={64} color={C.textDim} />
+          <Text style={styles.emptyText}>No specimen to crop</Text>
           <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/')}>
-            <Text style={styles.backButtonText}>Go to Home</Text>
+            <Text style={styles.backButtonText}>Return to Lab</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -268,27 +269,32 @@ export default function CropSelectionScreen() {
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleCancel} style={styles.headerButton}>
-            <Ionicons name="close" size={24} color="#f8fafc" />
+          <TouchableOpacity onPress={handleCancel} style={styles.headerButton} data-testid="cancel-crop-btn">
+            <Ionicons name="close" size={24} color={C.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Select Region</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerLabel}>SPECIMEN EXTRACTION</Text>
+            <Text style={styles.headerTitle}>Select Region</Text>
+          </View>
           <TouchableOpacity
             onPress={handleConfirmCrop}
             style={[styles.headerButton, styles.confirmButton]}
             disabled={isCropping}
+            data-testid="confirm-crop-btn"
           >
             {isCropping ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={C.bgDark} />
             ) : (
-              <Ionicons name="checkmark" size={24} color="#fff" />
+              <Ionicons name="checkmark" size={24} color={C.bgDark} />
             )}
           </TouchableOpacity>
         </View>
 
         {/* Instructions */}
         <View style={styles.instructions}>
+          <Ionicons name="move" size={14} color={C.brass} />
           <Text style={styles.instructionText}>
-            Drag box to move • Drag corners to resize
+            Drag box to move  •  Drag corners to resize
           </Text>
         </View>
 
@@ -319,7 +325,7 @@ export default function CropSelectionScreen() {
             </Animated.View>
           </GestureDetector>
 
-          {/* Corner Handles */}
+          {/* Corner Handles - Brass Style */}
           <GestureDetector gesture={tlGesture}>
             <Animated.View style={[styles.handle, useAnimatedStyle(() => ({
               left: cropX.value - 15,
@@ -358,16 +364,17 @@ export default function CropSelectionScreen() {
             style={[styles.cropButton, isCropping && styles.disabledButton]}
             onPress={handleConfirmCrop}
             disabled={isCropping}
+            data-testid="crop-overlay-btn"
           >
             {isCropping ? (
               <>
-                <ActivityIndicator size="small" color="#fff" />
-                <Text style={styles.cropButtonText}>Cropping...</Text>
+                <ActivityIndicator size="small" color={C.bgDark} />
+                <Text style={styles.cropButtonText}>EXTRACTING...</Text>
               </>
             ) : (
               <>
-                <Ionicons name="crop" size={20} color="#fff" />
-                <Text style={styles.cropButtonText}>Crop & Overlay</Text>
+                <Ionicons name="crop" size={20} color={C.bgDark} />
+                <Text style={styles.cropButtonText}>EXTRACT & OVERLAY</Text>
               </>
             )}
           </TouchableOpacity>
@@ -380,7 +387,7 @@ export default function CropSelectionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: C.bgDark,
   },
   header: {
     flexDirection: 'row',
@@ -389,34 +396,57 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
+    borderBottomColor: C.border,
+    backgroundColor: C.bgPanel,
   },
   headerButton: {
     padding: 8,
+    borderRadius: 6,
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   confirmButton: {
-    backgroundColor: '#22c55e',
-    borderRadius: 8,
+    backgroundColor: C.brass,
+    borderColor: C.brassLight,
+  },
+  headerTitleContainer: {
+    alignItems: 'center',
+  },
+  headerLabel: {
+    fontSize: 9,
+    color: C.brass,
+    letterSpacing: 2,
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#f8fafc',
+    color: C.text,
   },
   instructions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     padding: 12,
-    backgroundColor: '#1e293b',
+    backgroundColor: C.bgPanel,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
   instructionText: {
-    fontSize: 13,
-    color: '#3b82f6',
-    textAlign: 'center',
+    fontSize: 12,
+    color: C.brass,
     fontWeight: '500',
+    letterSpacing: 1,
   },
   imageContainer: {
     flex: 1,
     position: 'relative',
     margin: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
@@ -424,7 +454,7 @@ const styles = StyleSheet.create({
   },
   darkOverlay: {
     position: 'absolute',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(13, 9, 7, 0.7)',
   },
   darkTop: {
     top: 0,
@@ -442,7 +472,7 @@ const styles = StyleSheet.create({
   cropBox: {
     position: 'absolute',
     borderWidth: 2,
-    borderColor: '#3b82f6',
+    borderColor: C.brass,
     backgroundColor: 'transparent',
   },
   cropBorder: {
@@ -451,49 +481,63 @@ const styles = StyleSheet.create({
   },
   gridLine: {
     position: 'absolute',
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: C.brass + '40',
   },
   handle: {
     position: 'absolute',
     width: 30,
     height: 30,
-    backgroundColor: '#3b82f6',
+    backgroundColor: C.brass,
     borderRadius: 15,
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: C.brassLight,
     zIndex: 10,
+    shadowColor: C.brass,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
   },
   bottomActions: {
     flexDirection: 'row',
     padding: 16,
     gap: 12,
+    backgroundColor: C.bgPanel,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
   },
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#334155',
+    borderRadius: 8,
+    backgroundColor: C.bgCard,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
   },
   cancelButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#f8fafc',
+    color: C.text,
+    letterSpacing: 1,
   },
   cropButton: {
     flex: 2,
     flexDirection: 'row',
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+    backgroundColor: C.brass,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    borderWidth: 2,
+    borderColor: C.brassLight,
   },
   cropButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.bgDark,
+    letterSpacing: 1,
   },
   disabledButton: {
     opacity: 0.6,
@@ -505,20 +549,24 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   emptyText: {
-    fontSize: 18,
-    color: '#f8fafc',
+    fontSize: 16,
+    color: C.textDim,
     marginTop: 16,
+    letterSpacing: 1,
   },
   backButton: {
     marginTop: 24,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#3b82f6',
-    borderRadius: 8,
+    backgroundColor: C.brass,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: C.brassLight,
   },
   backButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: C.bgDark,
+    fontSize: 14,
     fontWeight: '600',
+    letterSpacing: 1,
   },
 });
