@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { useOverlayStore } from '../store/overlayStore';
 import { cropRegion } from '../services/api';
 
@@ -39,6 +39,12 @@ export default function CropSelectionScreen() {
   const cropY = useSharedValue(50);
   const cropWidth = useSharedValue(200);
   const cropHeight = useSharedValue(150);
+
+  // Context values to track gesture start positions
+  const startX = useSharedValue(0);
+  const startY = useSharedValue(0);
+  const startW = useSharedValue(0);
+  const startH = useSharedValue(0);
 
   const MIN_SIZE = 50;
 
