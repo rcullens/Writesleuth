@@ -20,32 +20,15 @@ import Animated, {
   useAnimatedStyle, 
   runOnJS,
   withSpring,
-  interpolate,
-  Extrapolation,
 } from 'react-native-reanimated';
 import Slider from '@react-native-community/slider';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useOverlayStore } from '../store/overlayStore';
 import { localComparison, generateOverlayPDF } from '../services/api';
+import { STEAMPUNK_COLORS as C } from '../styles/theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-// Forensic Lab Colors
-const COLORS = {
-  bgDark: '#0a0e14',
-  bgPanel: '#111922',
-  bgCard: '#1a2332',
-  accent: '#00d4ff',
-  accentDim: '#0891b2',
-  success: '#10b981',
-  danger: '#ef4444',
-  warning: '#f59e0b',
-  text: '#e2e8f0',
-  textDim: '#64748b',
-  border: '#1e3a5f',
-  glow: 'rgba(0, 212, 255, 0.15)',
-};
 
 export default function OverlayAdjustmentScreen() {
   const router = useRouter();
@@ -280,19 +263,19 @@ export default function OverlayAdjustmentScreen() {
 
   const handleBack = () => { resetAll(); router.replace('/'); };
   const handleRemove = () => {
-    Alert.alert('Remove Overlay', 'Discard current analysis?', [
+    Alert.alert('Discard Analysis', 'Discard current specimen analysis?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: () => { resetOverlay(); router.back(); } },
     ]);
   };
 
-  const getScoreColor = (score: number) => score >= 50 ? COLORS.success : COLORS.danger;
+  const getScoreColor = (score: number) => score >= 50 ? C.success : C.danger;
 
   if (!baseImage || !croppedImage) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyState}>
-          <Ionicons name="layers-outline" size={64} color={COLORS.textDim} />
+          <Ionicons name="layers-outline" size={64} color={C.textDim} />
           <Text style={styles.emptyText}>No specimen data</Text>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backButtonText}>Return</Text>
@@ -307,18 +290,18 @@ export default function OverlayAdjustmentScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={styles.headerBtn}>
-            <Ionicons name="chevron-back" size={24} color={COLORS.accent} />
+          <TouchableOpacity onPress={handleBack} style={styles.headerBtn} data-testid="overlay-back-btn">
+            <Ionicons name="chevron-back" size={24} color={C.brass} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerLabel}>SPECIMEN ANALYSIS</Text>
-            <Text style={styles.headerTitle}>Overlay Comparator</Text>
+            <Text style={styles.headerLabel}>SPECIMEN COMPARATOR</Text>
+            <Text style={styles.headerTitle}>Overlay Analysis</Text>
           </View>
           <View style={styles.statusIndicator}>
             {isComparing ? (
-              <ActivityIndicator size="small" color={COLORS.accent} />
+              <ActivityIndicator size="small" color={C.brass} />
             ) : (
-              <View style={[styles.statusDot, { backgroundColor: COLORS.success }]} />
+              <View style={[styles.statusDot, { backgroundColor: C.success }]} />
             )}
           </View>
         </View>
@@ -326,24 +309,23 @@ export default function OverlayAdjustmentScreen() {
         {/* Gesture Hint */}
         <View style={styles.gestureHint}>
           <View style={styles.hintItem}>
-            <Ionicons name="move" size={14} color={COLORS.accent} />
+            <Ionicons name="move" size={14} color={C.brass} />
             <Text style={styles.hintText}>Drag</Text>
           </View>
           <View style={styles.hintDivider} />
           <View style={styles.hintItem}>
-            <Ionicons name="resize" size={14} color={COLORS.accent} />
+            <Ionicons name="resize" size={14} color={C.brass} />
             <Text style={styles.hintText}>Pinch</Text>
           </View>
           <View style={styles.hintDivider} />
           <View style={styles.hintItem}>
-            <Ionicons name="sync" size={14} color={COLORS.accent} />
+            <Ionicons name="sync" size={14} color={C.brass} />
             <Text style={styles.hintText}>Rotate</Text>
           </View>
         </View>
 
         {/* Analysis Area */}
         <View style={styles.analysisArea}>
-          <View style={styles.scanlineOverlay} />
           <Image source={{ uri: baseImage }} style={styles.baseImage} resizeMode="contain" />
 
           {showGrid && (
@@ -406,7 +388,7 @@ export default function OverlayAdjustmentScreen() {
           {/* Rotation Control */}
           <View style={styles.controlGroup}>
             <View style={styles.controlHeader}>
-              <Ionicons name="sync-outline" size={16} color={COLORS.accent} />
+              <Ionicons name="sync-outline" size={16} color={C.brass} />
               <Text style={styles.controlLabel}>ROTATION</Text>
               <Text style={styles.controlValueBadge}>{displayRotation}°</Text>
             </View>
@@ -416,8 +398,9 @@ export default function OverlayAdjustmentScreen() {
                   key={deg}
                   style={[styles.rotBtn, deg === 0 && styles.rotBtnReset]}
                   onPress={() => deg === 0 ? handleRotationSlider(0) : rotateBy(deg)}
+                  data-testid={`rotate-${deg}-btn`}
                 >
-                  <Text style={styles.rotBtnText}>{deg === 0 ? 'RESET' : `${deg > 0 ? '+' : ''}${deg}°`}</Text>
+                  <Text style={[styles.rotBtnText, deg === 0 && styles.rotBtnResetText]}>{deg === 0 ? 'RESET' : `${deg > 0 ? '+' : ''}${deg}°`}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -427,16 +410,16 @@ export default function OverlayAdjustmentScreen() {
               maximumValue={180}
               value={rotation.value}
               onValueChange={handleRotationSlider}
-              minimumTrackTintColor={COLORS.accent}
-              maximumTrackTintColor={COLORS.border}
-              thumbTintColor={COLORS.accent}
+              minimumTrackTintColor={C.brass}
+              maximumTrackTintColor={C.border}
+              thumbTintColor={C.brass}
             />
           </View>
 
           {/* Scale Control */}
           <View style={styles.controlGroup}>
             <View style={styles.controlHeader}>
-              <Ionicons name="resize-outline" size={16} color={COLORS.accent} />
+              <Ionicons name="resize-outline" size={16} color={C.brass} />
               <Text style={styles.controlLabel}>MAGNIFICATION</Text>
               <Text style={styles.controlValueBadge}>{displayScale}%</Text>
             </View>
@@ -446,16 +429,16 @@ export default function OverlayAdjustmentScreen() {
               maximumValue={2.5}
               value={scale.value}
               onValueChange={handleScaleSlider}
-              minimumTrackTintColor={COLORS.accent}
-              maximumTrackTintColor={COLORS.border}
-              thumbTintColor={COLORS.accent}
+              minimumTrackTintColor={C.brass}
+              maximumTrackTintColor={C.border}
+              thumbTintColor={C.brass}
             />
           </View>
 
           {/* Opacity Control */}
           <View style={styles.controlGroup}>
             <View style={styles.controlHeader}>
-              <Ionicons name="eye-outline" size={16} color={COLORS.accent} />
+              <Ionicons name="eye-outline" size={16} color={C.brass} />
               <Text style={styles.controlLabel}>OPACITY</Text>
               <Text style={styles.controlValueBadge}>{Math.round(alpha.value * 100)}%</Text>
             </View>
@@ -465,37 +448,37 @@ export default function OverlayAdjustmentScreen() {
               maximumValue={1}
               value={alpha.value}
               onValueChange={handleAlphaChange}
-              minimumTrackTintColor={COLORS.accent}
-              maximumTrackTintColor={COLORS.border}
-              thumbTintColor={COLORS.accent}
+              minimumTrackTintColor={C.brass}
+              maximumTrackTintColor={C.border}
+              thumbTintColor={C.brass}
             />
           </View>
 
           {/* View Toggles */}
           <View style={styles.toggleRow}>
-            <TouchableOpacity style={[styles.toggleBtn, showGrid && styles.toggleActive]} onPress={toggleGrid}>
-              <Ionicons name="grid-outline" size={18} color={showGrid ? COLORS.bgDark : COLORS.accent} />
+            <TouchableOpacity style={[styles.toggleBtn, showGrid && styles.toggleActive]} onPress={toggleGrid} data-testid="toggle-grid-btn">
+              <Ionicons name="grid-outline" size={18} color={showGrid ? C.bgDark : C.brass} />
               <Text style={[styles.toggleText, showGrid && styles.toggleTextActive]}>GRID</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.toggleBtn, showCrosshair && styles.toggleActive]} onPress={toggleCrosshair}>
-              <Ionicons name="locate-outline" size={18} color={showCrosshair ? COLORS.bgDark : COLORS.accent} />
+            <TouchableOpacity style={[styles.toggleBtn, showCrosshair && styles.toggleActive]} onPress={toggleCrosshair} data-testid="toggle-crosshair-btn">
+              <Ionicons name="locate-outline" size={18} color={showCrosshair ? C.bgDark : C.brass} />
               <Text style={[styles.toggleText, showCrosshair && styles.toggleTextActive]}>RETICLE</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.toggleBtn, showHeatmap && styles.toggleActive]} onPress={toggleHeatmap}>
-              <Ionicons name="thermometer-outline" size={18} color={showHeatmap ? COLORS.bgDark : COLORS.accent} />
+            <TouchableOpacity style={[styles.toggleBtn, showHeatmap && styles.toggleActive]} onPress={toggleHeatmap} data-testid="toggle-heatmap-btn">
+              <Ionicons name="thermometer-outline" size={18} color={showHeatmap ? C.bgDark : C.brass} />
               <Text style={[styles.toggleText, showHeatmap && styles.toggleTextActive]}>THERMAL</Text>
             </TouchableOpacity>
           </View>
 
           {/* Action Buttons */}
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionBtn} onPress={handleReset}>
-              <Ionicons name="refresh" size={18} color={COLORS.accent} />
+            <TouchableOpacity style={styles.actionBtn} onPress={handleReset} data-testid="reset-overlay-btn">
+              <Ionicons name="refresh" size={18} color={C.brass} />
               <Text style={styles.actionBtnText}>RESET</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionBtn, styles.dangerBtn]} onPress={handleRemove}>
-              <Ionicons name="close-circle" size={18} color={COLORS.danger} />
-              <Text style={[styles.actionBtnText, { color: COLORS.danger }]}>DISCARD</Text>
+            <TouchableOpacity style={[styles.actionBtn, styles.dangerBtn]} onPress={handleRemove} data-testid="discard-overlay-btn">
+              <Ionicons name="close-circle" size={18} color={C.danger} />
+              <Text style={[styles.actionBtnText, { color: C.danger }]}>DISCARD</Text>
             </TouchableOpacity>
           </View>
 
@@ -504,12 +487,13 @@ export default function OverlayAdjustmentScreen() {
             style={[styles.exportBtn, generatingPDF && styles.disabledBtn]}
             onPress={handleSaveReport}
             disabled={generatingPDF}
+            data-testid="export-report-btn"
           >
             {generatingPDF ? (
-              <ActivityIndicator size="small" color={COLORS.bgDark} />
+              <ActivityIndicator size="small" color={C.bgDark} />
             ) : (
               <>
-                <Ionicons name="document-text" size={20} color={COLORS.bgDark} />
+                <Ionicons name="document-text" size={20} color={C.bgDark} />
                 <Text style={styles.exportBtnText}>EXPORT ANALYSIS REPORT</Text>
               </>
             )}
@@ -521,7 +505,7 @@ export default function OverlayAdjustmentScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgDark },
+  container: { flex: 1, backgroundColor: C.bgDark },
   header: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -529,12 +513,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, 
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: C.border,
+    backgroundColor: C.bgPanel,
   },
-  headerBtn: { padding: 8 },
+  headerBtn: { 
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
   headerTitleContainer: { alignItems: 'center' },
-  headerLabel: { fontSize: 10, color: COLORS.accent, letterSpacing: 2 },
-  headerTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text },
+  headerLabel: { fontSize: 9, color: C.brass, letterSpacing: 2 },
+  headerTitle: { fontSize: 16, fontWeight: '600', color: C.text },
   statusIndicator: { width: 40, alignItems: 'center' },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   gestureHint: { 
@@ -542,33 +533,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center',
     paddingVertical: 8,
-    backgroundColor: COLORS.bgPanel,
+    backgroundColor: C.bgPanel,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: C.border,
   },
   hintItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  hintText: { fontSize: 11, color: COLORS.textDim, textTransform: 'uppercase', letterSpacing: 1 },
-  hintDivider: { width: 1, height: 12, backgroundColor: COLORS.border, marginHorizontal: 16 },
+  hintText: { fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 },
+  hintDivider: { width: 1, height: 12, backgroundColor: C.border, marginHorizontal: 16 },
   analysisArea: { 
     flex: 1, 
     position: 'relative', 
     backgroundColor: '#000',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
     margin: 8,
     borderRadius: 4,
     overflow: 'hidden',
   },
-  scanlineOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'transparent',
-    opacity: 0.03,
-  },
   baseImage: { width: '100%', height: '100%' },
   gridOverlay: { ...StyleSheet.absoluteFillObject },
-  gridLine: { position: 'absolute', backgroundColor: COLORS.accent + '20' },
+  gridLine: { position: 'absolute', backgroundColor: C.brass + '20' },
   crosshairContainer: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
-  crosshairLine: { position: 'absolute', backgroundColor: COLORS.accent + '60' },
+  crosshairLine: { position: 'absolute', backgroundColor: C.brass + '60' },
   crosshairV: { width: 1, height: '100%' },
   crosshairH: { height: 1, width: '100%' },
   crosshairCenter: { 
@@ -576,7 +562,7 @@ const styles = StyleSheet.create({
     height: 20, 
     borderRadius: 10, 
     borderWidth: 2, 
-    borderColor: COLORS.accent,
+    borderColor: C.brass,
     backgroundColor: 'transparent',
   },
   overlayWrapper: { position: 'absolute' },
@@ -584,53 +570,53 @@ const styles = StyleSheet.create({
   overlayBorder: { 
     ...StyleSheet.absoluteFillObject, 
     borderWidth: 2, 
-    borderColor: COLORS.accent,
+    borderColor: C.brass,
     borderStyle: 'solid',
   },
-  overlayCornerTL: { position: 'absolute', top: -2, left: -2, width: 12, height: 12, borderTopWidth: 3, borderLeftWidth: 3, borderColor: COLORS.accent },
-  overlayCornerTR: { position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderTopWidth: 3, borderRightWidth: 3, borderColor: COLORS.accent },
-  overlayCornerBL: { position: 'absolute', bottom: -2, left: -2, width: 12, height: 12, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: COLORS.accent },
-  overlayCornerBR: { position: 'absolute', bottom: -2, right: -2, width: 12, height: 12, borderBottomWidth: 3, borderRightWidth: 3, borderColor: COLORS.accent },
+  overlayCornerTL: { position: 'absolute', top: -2, left: -2, width: 12, height: 12, borderTopWidth: 3, borderLeftWidth: 3, borderColor: C.brassLight },
+  overlayCornerTR: { position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderTopWidth: 3, borderRightWidth: 3, borderColor: C.brassLight },
+  overlayCornerBL: { position: 'absolute', bottom: -2, left: -2, width: 12, height: 12, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: C.brassLight },
+  overlayCornerBR: { position: 'absolute', bottom: -2, right: -2, width: 12, height: 12, borderBottomWidth: 3, borderRightWidth: 3, borderColor: C.brassLight },
   liveStats: {
     position: 'absolute',
     bottom: 8,
     right: 8,
-    backgroundColor: COLORS.bgDark + 'DD',
+    backgroundColor: C.bgDark + 'DD',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
-  liveStatText: { fontSize: 10, color: COLORS.accent, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', letterSpacing: 1 },
+  liveStatText: { fontSize: 10, color: C.brass, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', letterSpacing: 1 },
   controlPanel: { 
     maxHeight: SCREEN_HEIGHT * 0.42, 
-    backgroundColor: COLORS.bgPanel,
+    backgroundColor: C.bgPanel,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: C.border,
   },
   controlContent: { padding: 16, paddingBottom: 32 },
   metricsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   metricCard: { 
     flex: 1, 
-    backgroundColor: COLORS.bgCard, 
+    backgroundColor: C.bgCard, 
     borderRadius: 8, 
     padding: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
-  metricLabel: { fontSize: 9, color: COLORS.textDim, letterSpacing: 1, marginBottom: 4 },
+  metricLabel: { fontSize: 9, color: C.textDim, letterSpacing: 1, marginBottom: 4 },
   metricValue: { fontSize: 24, fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
   metricBar: { height: 4, borderRadius: 2, marginTop: 8 },
   metricBarFill: { height: '100%', borderRadius: 2 },
   controlGroup: { marginBottom: 16 },
   controlHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  controlLabel: { flex: 1, fontSize: 11, color: COLORS.text, letterSpacing: 1 },
+  controlLabel: { flex: 1, fontSize: 11, color: C.text, letterSpacing: 1 },
   controlValueBadge: { 
     fontSize: 12, 
-    color: COLORS.accent, 
+    color: C.brass, 
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: C.bgCard,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -640,14 +626,15 @@ const styles = StyleSheet.create({
   rotBtn: { 
     flex: 1, 
     paddingVertical: 8, 
-    backgroundColor: COLORS.bgCard, 
+    backgroundColor: C.bgCard, 
     borderRadius: 4, 
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
-  rotBtnReset: { backgroundColor: COLORS.accent + '20', borderColor: COLORS.accent },
-  rotBtnText: { fontSize: 9, color: COLORS.text, fontWeight: '600', letterSpacing: 0.5 },
+  rotBtnReset: { backgroundColor: C.brass + '20', borderColor: C.brass },
+  rotBtnText: { fontSize: 9, color: C.text, fontWeight: '600', letterSpacing: 0.5 },
+  rotBtnResetText: { color: C.brass },
   toggleRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   toggleBtn: { 
     flex: 1, 
@@ -657,13 +644,13 @@ const styles = StyleSheet.create({
     gap: 6, 
     paddingVertical: 12, 
     borderRadius: 6, 
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: C.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
-  toggleActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
-  toggleText: { fontSize: 10, color: COLORS.accent, letterSpacing: 1 },
-  toggleTextActive: { color: COLORS.bgDark },
+  toggleActive: { backgroundColor: C.brass, borderColor: C.brassLight },
+  toggleText: { fontSize: 10, color: C.brass, letterSpacing: 1 },
+  toggleTextActive: { color: C.bgDark },
   actionRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   actionBtn: { 
     flex: 1, 
@@ -673,12 +660,12 @@ const styles = StyleSheet.create({
     gap: 6, 
     paddingVertical: 12, 
     borderRadius: 6, 
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: C.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
-  dangerBtn: { borderColor: COLORS.danger + '50' },
-  actionBtnText: { fontSize: 11, color: COLORS.accent, fontWeight: '600', letterSpacing: 1 },
+  dangerBtn: { borderColor: C.danger + '50' },
+  actionBtnText: { fontSize: 11, color: C.brass, fontWeight: '600', letterSpacing: 1 },
   exportBtn: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -686,12 +673,22 @@ const styles = StyleSheet.create({
     gap: 8, 
     paddingVertical: 16, 
     borderRadius: 8, 
-    backgroundColor: COLORS.accent,
+    backgroundColor: C.brass,
+    borderWidth: 2,
+    borderColor: C.brassLight,
   },
-  exportBtnText: { fontSize: 13, color: COLORS.bgDark, fontWeight: '700', letterSpacing: 1 },
+  exportBtnText: { fontSize: 13, color: C.bgDark, fontWeight: '700', letterSpacing: 1 },
   disabledBtn: { opacity: 0.6 },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  emptyText: { fontSize: 16, color: COLORS.textDim, marginTop: 16, letterSpacing: 1 },
-  backButton: { marginTop: 24, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: COLORS.accent, borderRadius: 8 },
-  backButtonText: { color: COLORS.bgDark, fontSize: 14, fontWeight: '600', letterSpacing: 1 },
+  emptyText: { fontSize: 16, color: C.textDim, marginTop: 16, letterSpacing: 1 },
+  backButton: { 
+    marginTop: 24, 
+    paddingHorizontal: 24, 
+    paddingVertical: 12, 
+    backgroundColor: C.brass, 
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: C.brassLight,
+  },
+  backButtonText: { color: C.bgDark, fontSize: 14, fontWeight: '600', letterSpacing: 1 },
 });
