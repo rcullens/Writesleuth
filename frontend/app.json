@@ -16,9 +16,11 @@
       }
     },
     "android": {
+      "package": "com.writesleuth.forensic",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0f172a"
+        "backgroundColor": "#0d0907"
       },
       "edgeToEdgeEnabled": true,
       "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"]
