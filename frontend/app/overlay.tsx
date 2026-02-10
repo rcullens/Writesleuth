@@ -151,12 +151,14 @@ export default function OverlayAdjustmentScreen() {
       runOnJS(runLocalComparison)();
     });
 
-  // Smoother rotation gesture
+  // Smoother rotation gesture with worklet annotation
   const rotationGesture = Gesture.Rotation()
     .onStart(() => {
+      'worklet';
       savedRotation.value = rotation.value;
     })
     .onUpdate((e) => {
+      'worklet';
       // Apply damping to rotation
       const dampingFactor = 0.6;
       const rotationDelta = (e.rotation * 180 / Math.PI) * dampingFactor;
@@ -164,6 +166,7 @@ export default function OverlayAdjustmentScreen() {
       runOnJS(updateDisplayValues)();
     })
     .onEnd(() => {
+      'worklet';
       // Snap to nearest 5 degrees if close
       const snapped = Math.round(rotation.value / 5) * 5;
       if (Math.abs(rotation.value - snapped) < 3) {
