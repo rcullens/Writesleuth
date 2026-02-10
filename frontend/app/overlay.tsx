@@ -104,17 +104,20 @@ export default function OverlayAdjustmentScreen() {
     updateDisplayValues();
   }, []);
 
-  // Smoother pan gesture
+  // Smoother pan gesture with worklet annotation
   const panGesture = Gesture.Pan()
     .onStart(() => {
+      'worklet';
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
     })
     .onUpdate((e) => {
+      'worklet';
       translateX.value = savedTranslateX.value + e.translationX;
       translateY.value = savedTranslateY.value + e.translationY;
     })
     .onEnd(() => {
+      'worklet';
       runOnJS(updateStore)();
     });
 
